@@ -1,0 +1,233 @@
+/* Layout and type follow Jon Barron's homepage (github.com/jonbarron/jonbarron.github.io),
+   rebuilt with CSS Grid so rows stack on narrow screens. */
+
+:root {
+  --text: #1a1a1a;
+  --muted: #555;
+  --link: #1772d0;
+  --link-hover: #f09228;
+  --highlight: #ffffd0;
+  --thumb-bg: #eef1f5;
+  --rule: #e5e5e5;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--text);
+  font-family: 'Lato', Verdana, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover, a:focus-visible { color: var(--link-hover); }
+a:focus-visible { outline: 2px solid var(--link-hover); outline-offset: 2px; border-radius: 2px; }
+
+strong { font-weight: 700; }
+
+/* ---------- intro ---------- */
+
+.intro {
+  display: grid;
+  grid-template-columns: 63fr 37fr;
+  gap: 24px;
+  align-items: center;
+  padding: 2.5% 0;
+}
+
+.name {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 400;
+}
+
+.intro p { margin: 0 0 14px; }
+
+.contact {
+  text-align: center;
+  margin-top: 4px;
+}
+.contact a { white-space: nowrap; }
+.contact .sep { color: var(--muted); padding: 0 6px; }
+
+.portrait {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 1;
+  justify-self: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* ---------- sections ---------- */
+
+h2 {
+  margin: 36px 0 6px;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.section-intro { margin: 0 0 12px; }
+.mark { background: var(--highlight); }
+.award { color: #c20000; }
+
+.section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+
+section { scroll-margin-top: 12px; }
+
+/* ---------- highlights ---------- */
+
+.highlights {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin: 8px 0 20px;
+}
+.highlights .card { display: flex; flex-direction: column; min-width: 0; color: var(--text); }
+.highlights .card:hover .card-title, .highlights .card:focus-visible .card-title { color: var(--link-hover); }
+.highlights .thumb { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+.thumb img.contain { object-fit: contain; background: #fff; }
+.highlights .card-title { margin-top: 6px; font-weight: 700; color: var(--link); }
+.highlights .gloss { font-size: 14px; color: var(--muted); }
+
+/* ---------- news ---------- */
+
+.news { list-style: none; margin: 0; padding: 0 20px; }
+.news li { display: grid; grid-template-columns: 76px 1fr; gap: 12px; margin: 6px 0; }
+.news .date { color: var(--muted); }
+
+/* ---------- experience ---------- */
+
+.timeline {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0 20px;
+}
+.timeline dt { color: var(--muted); }
+.timeline dd { margin: 0; }
+.timeline .what { color: var(--muted); }
+
+.entries { display: flex; flex-direction: column; }
+
+.entry {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px;
+}
+.entry.highlight { background: var(--highlight); }
+
+.entry .title { font-size: 15px; font-weight: 700; }
+.entry .authors { margin-top: 2px; }
+.entry .venue { font-style: italic; }
+.entry .role { color: var(--muted); font-style: italic; }
+.entry .links { margin-top: 2px; }
+.entry .links .sep { color: var(--muted); padding: 0 4px; }
+.entry p { margin: 8px 0 0; }
+.entry .outcome { margin-top: 4px; }
+.entry .outcome em { color: var(--muted); }
+.entry > div, .intro > div { min-width: 0; }
+
+/* ---------- thumbnails ----------
+   The labelled box shows until the real image exists in images/ (the img removes itself on error). */
+
+.thumb {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--thumb-bg);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px;
+}
+.portrait.thumb { width: 100%; height: auto; font-size: 15px; }
+
+.thumb img, .thumb video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb picture { display: contents; }
+
+/* ---------- small lists ---------- */
+
+.plain-list { margin: 0; padding: 0 20px 0 40px; }
+.plain-list li { margin: 6px 0; }
+.plain-list ul { margin: 4px 0 6px; padding-left: 20px; }
+.plain-list ul li { margin: 2px 0; }
+
+footer {
+  margin-top: 48px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  text-align: right;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- project pages (demos, libsdca) ----------
+   One text width from top to bottom, with a centered header and pill links. */
+
+.project { font-size: 16px; }
+.project-head { text-align: center; margin: 4px 0 28px; }
+.project-head h1 { margin: 8px 0 6px; font-size: 34px; font-weight: 400; line-height: 1.2; }
+.project-head .subtitle { margin: 0 0 14px; color: var(--muted); }
+.pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pills a { padding: 5px 16px; border-radius: 999px; background: var(--thumb-bg); color: var(--text); font-size: 14px; }
+.pills a:hover, .pills a:focus-visible { background: var(--text); color: #fff; }
+
+@media (min-width: 641px) {
+  .project p, .project .prose > ul:not(.refs-list):not(.refs) > li { text-align: justify; hyphens: auto; }
+  .project .project-head p { text-align: center; }
+}
+
+/* ---------- narrow screens ---------- */
+
+@media (max-width: 640px) {
+  .intro { grid-template-columns: 1fr; }
+  .portrait { order: -1; max-width: 200px; }
+  .highlights { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .entry { grid-template-columns: 1fr; padding: 16px 12px; gap: 12px; }
+  .thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+  .portrait.thumb { aspect-ratio: 1; }
+  .plain-list { padding-left: 24px; }
+  .news, .timeline { padding: 0 12px; }
+  .news li { grid-template-columns: 1fr; gap: 0; }
+  .timeline { grid-template-columns: 1fr; gap: 0; }
+  .timeline dd { margin-bottom: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Max Lapin</title>
+  <meta name="author" content="Max Lapin">
+  <meta name="description" content="Max Lapin, Member of Technical Staff at Reka AI. Research on multimodal pre-training, video generation, and world models.">
+  <meta property="og:title" content="Max Lapin">
+  <meta property="og:description" content="Multimodal pre-training, video generation, and world models.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:creator" content="@mlapin_">
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="stylesheet.css">
+</head>
+
+<body>
+<div class="page">
+
+  <!-- ================= intro ================= -->
+  <header class="intro">
+    <div>
+      <h1 class="name">Max Lapin</h1>
+      <p>
+        I'm a Member of Technical Staff at <a href="https://reka.ai/">Reka AI</a>, where I work on
+        training world models. Most recently I worked on
+        <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1</a>, an omni model
+        that understands and generates text, images, and video, reasons over them, and takes actions within a single
+        neural network.
+      </p>
+      <p>
+        Previously, I was a research scientist at <a href="https://stability.ai/">Stability AI</a> working on image and
+        controllable video generation; before that, I spent six years at Amazon working on computer vision for robotics
+        and visual search.
+      </p>
+      <p>
+        I did my PhD at the <a href="https://www.mpi-inf.mpg.de/">Max Planck Institute for Informatics</a> and Saarland
+        University with <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a>
+        and <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>.
+      </p>
+      <p class="contact">
+        <a href="mailto:maksim.lapin@gmail.com">Email</a><span class="sep">/</span>
+        <a href="cv.pdf">CV</a><span class="sep">/</span>
+        <a href="bio.txt">Bio</a><span class="sep">/</span>
+        <a href="https://scholar.google.com/citations?user=axpNZUAAAAAJ">Scholar</a><span class="sep">/</span>
+        <a href="https://x.com/mlapin_">Twitter</a><span class="sep">/</span>
+        <a href="https://github.com/mlapin">GitHub</a>
+      </p>
+    </div>
+    <div class="portrait thumb">
+      Portrait<br>images/max.jpg
+      <img src="images/max.jpg" alt="Photo of Max Lapin" onerror="this.remove()">
+    </div>
+  </header>
+
+  <!-- Highlights: the few things to remember, one gloss each (after Ben Mildenhall's page). -->
+  <div class="highlights" aria-label="Highlights">
+    <a class="card" href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">
+      <span class="thumb">Rho-1<picture><source media="(prefers-reduced-motion: reduce)" srcset="images/rho1_multimodal_session_still.webp"><img src="images/rho1_multimodal_session.webp" alt="" loading="lazy" onerror="this.remove()"></picture></span>
+      <span class="card-title">Rho-1</span>
+      <span class="gloss">Understands, simulates, and acts</span>
+    </a>
+    <a class="card" href="https://stable-cinemetrics.github.io/">
+      <span class="thumb">Stable Cinemetrics<picture><source media="(prefers-reduced-motion: reduce)" srcset="images/cinemetrics_convertible_4x3_still.webp"><img src="images/cinemetrics_convertible_4x3.webp" alt="" loading="lazy" onerror="this.remove()"></picture></span>
+      <span class="card-title">Stable Cinemetrics</span>
+      <span class="gloss">Video models, judged by filmmakers</span>
+    </a>
+    <a class="card" href="https://stable-video-driven-portraits.github.io/">
+      <span class="thumb">Stable Video-Driven Portraits<picture><source media="(prefers-reduced-motion: reduce)" srcset="images/portraits_cross2_labeled_still.webp"><img class="contain" src="images/portraits_cross2_labeled.webp" alt="" loading="lazy" onerror="this.remove()"></picture></span>
+      <span class="card-title">Stable Video-Driven Portraits</span>
+      <span class="gloss">Animate a face from any video</span>
+    </a>
+    <a class="card" href="https://stability.ai/news-updates/introducing-stable-diffusion-3-5">
+      <span class="thumb">SD3.5<img src="images/sd35_text.jpg" alt="" loading="lazy" onerror="this.remove()"></span>
+      <span class="card-title">Stable Diffusion 3.5</span>
+      <span class="gloss">Open text-to-image models</span>
+    </a>
+    <a class="card" href="topk/demo.html">
+      <span class="thumb">Top-k demo<picture><source media="(prefers-reduced-motion: reduce)" srcset="images/topk_demo_4x3_still.webp"><img class="contain" src="images/topk_demo_4x3.gif" alt="" loading="lazy" onerror="this.remove()"></picture></span>
+      <span class="card-title">Top-k losses</span>
+      <span class="gloss">Train for the metric you report</span>
+    </a>
+  </div>
+
+  <nav class="section-nav" aria-label="Sections">
+    <a href="#news">News</a>
+    <a href="#research">Research</a>
+    <a href="#open-source">Open Source</a>
+    <a href="#industry">Industry Work</a>
+    <a href="#experience">Experience</a>
+    <a href="#patents">Patents</a>
+    <a href="#service">Service</a>
+  </nav>
+
+  <!-- ================= news =================
+       Keep this to the last ~5 items; move older ones out rather than letting the list grow. -->
+  <section id="news">
+    <h2>News</h2>
+    <ul class="news">
+      <li><span class="date">Oct 2026</span><span>We released a research preview of
+        <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1</a>, Reka's 19B
+        omni model trained from scratch.</span></li>
+      <li><span class="date">May 2026</span><span>Joined <a href="https://reka.ai/">Reka AI</a> to work on world models and
+        pre-training.</span></li>
+      <li><span class="date">Sep 2025</span><span><a href="https://arxiv.org/abs/2509.26555">Stable Cinemetrics</a> was
+        accepted to NeurIPS 2025. Congrats to <a href="https://agneetchatterjee.com/">Agneet Chatterjee</a>!</span></li>
+      <li><span class="date">Fall 2024</span><span><a href="https://stability.ai/news-updates/introducing-stable-diffusion-3-5">Stable Diffusion 3.5</a> and its
+        <a href="https://stability.ai/news-updates/sd3-5-large-controlnets">ControlNets</a> were released. I was a core
+        contributor to model fine-tuning, evaluation, and the ControlNet training infrastructure.</span></li>
+    </ul>
+  </section>
+
+  <!-- ================= research ================= -->
+  <section id="research">
+    <h2>Research</h2>
+    <p class="section-intro">
+      My research focuses on generative models that understand, generate, and reason with multimodal data, including
+      language, images, video, and 3D. I'm especially interested in where 2D and 3D vision meet: novel view synthesis,
+      camera control, and world models that keep a consistent 3D scene. Representative work is
+      <span class="mark">highlighted</span>.
+    </p>
+
+    <div class="entries">
+
+      <article class="entry highlight">
+        <div class="thumb">
+          Rho-1
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/rho1_multimodal_session_still.webp"><img src="images/rho1_multimodal_session.webp" alt="Rho-1 single-session multimodal workflow" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1: An Omni Model That Understands, Simulates, and Acts</a>
+          <div class="authors">Reka AI team</div>
+          <div class="role">I worked on pre-training and world-model research.</div>
+          <div><span class="venue">Research preview</span>, 2026</div>
+          <div class="links">
+            <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">blog post</a>
+          </div>
+          <p>
+            Instead of a pipeline of specialist models, one network handles text, images, video, and robot actions as
+            tokens in a single context. It is trained from scratch with next-token prediction and
+            <a href="https://arxiv.org/abs/2210.02747" title="Lipman et al., Flow Matching for Generative Modeling, ICLR 2023">flow matching</a>.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Stable Cinemetrics
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/cinemetrics_convertible_2x2_still.webp"><img src="images/cinemetrics_convertible_2x2.webp" alt="Stable Cinemetrics 2x2 video comparison on convertible desert highway dialogue prompt" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://stable-cinemetrics.github.io/">Stable Cinemetrics: Structured Taxonomy and Evaluation for Professional Video Generation</a>
+          <div class="authors">
+            <a href="https://agneetchatterjee.com/">Agneet Chatterjee</a>, <a href="https://rahimentezari.github.io/">Rahim Entezari</a>, <a href="https://scholar.google.com/citations?user=BLXPkDEAAAAJ">Maksym Zhuravinskyi</a>, <strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://reshinthadithyan.github.io/">Reshinth Adithyan</a>,
+            <a href="https://amitraj93.github.io/">Amit Raj</a>, <a href="https://chitta.orissalinks.com/www/">Chitta Baral</a>, <a href="https://faculty.engineering.asu.edu/yezhouyang/">Yezhou Yang</a>, <a href="https://varunjampani.github.io/">Varun Jampani</a>
+          </div>
+          <div><span class="venue">NeurIPS</span>, 2025</div>
+          <div class="links">
+            <a href="https://stable-cinemetrics.github.io/">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/2509.26555">arXiv</a>
+          </div>
+          <p>
+            What would a cinematographer ask of a video model? 76 filmmaking controls, 0.25M expert annotations of 20K
+            videos from 10+ models, and a VLM judge that beats zero-shot baselines.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Stable Video-Driven Portraits
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/portraits_cross_2x2_still.webp"><img src="images/portraits_cross_2x2.webp" alt="Cross-reenactment of portraits from driving videos" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://stable-video-driven-portraits.github.io/">Stable Video-Driven Portraits</a>
+          <div class="authors">
+            <a href="https://scholar.google.com/citations?user=NlAB4EsAAAAJ">Mallikarjun B. R.</a>, <a href="https://feiiyin.github.io/">Fei Yin</a>, <a href="https://voletiv.github.io/">Vikram Voleti</a>, <a href="https://neeek2303.github.io/">Nikita Drobyshev</a>, <strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://www.aaryaman.net/">Aaryaman Vasishta</a>,
+            <a href="https://varunjampani.github.io/">Varun Jampani</a>
+          </div>
+          <div><span class="venue">arXiv</span>, 2025</div>
+          <div class="links">
+            <a href="https://stable-video-driven-portraits.github.io/">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/2509.17476">arXiv</a>
+          </div>
+          <p>
+            Animate a portrait from any driving video. Masked facial regions carry the motion, and cross-identity
+            training keeps the driver's appearance from leaking through.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          SD3.5 ControlNets
+          <img src="images/sd35_controlnets.jpg" alt="Canny edge conditioning and generated images with Stable Diffusion 3.5 ControlNets" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://stability.ai/news-updates/sd3-5-large-controlnets">ControlNets for Stable Diffusion 3.5</a>
+          <div class="authors">Stability AI team</div>
+          <div class="role">Core contributor; I implemented the training infrastructure.</div>
+          <div><span class="venue">Open model release</span>, 2024</div>
+          <div class="links">
+            <a href="https://stability.ai/news-updates/sd3-5-large-controlnets">announcement</a><span class="sep">/</span>
+            <a href="https://huggingface.co/stabilityai/stable-diffusion-3.5-controlnets">weights</a><span class="sep">/</span>
+            <a href="https://github.com/Stability-AI/sd3.5/">code</a>
+          </div>
+          <p>
+            Blur, Canny edge, and Depth
+            <a href="https://arxiv.org/abs/2302.05543" title="Zhang, Rao, and Agrawala, Adding Conditional Control to Text-to-Image Diffusion Models, ICCV 2023">ControlNets</a> for Stable Diffusion 3.5, enabling high-fidelity upscaling,
+            structural guidance, and depth-conditioned generation.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry highlight">
+        <div class="thumb">
+          Stable Diffusion 3.5
+          <img src="images/sd35.jpg" alt="Images generated by Stable Diffusion 3.5" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://stability.ai/news-updates/introducing-stable-diffusion-3-5">Stable Diffusion 3.5</a>
+          <div class="authors">Stability AI team</div>
+          <div class="role">Core contributor to model fine-tuning and evaluation.</div>
+          <div><span class="venue">Open model release</span>, 2024</div>
+          <div class="links">
+            <a href="https://stability.ai/news-updates/introducing-stable-diffusion-3-5">announcement</a>
+          </div>
+          <p>
+            Stability's flagship open text-to-image models: Large, Large Turbo, and Medium.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          SD3 on Gaudi 2
+          <img src="images/gaudi.jpg" alt="SD3 training throughput on 16 accelerators: Gaudi 2, H100, A100" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://stability.ai/news-updates/putting-the-ai-supercomputer-to-work">Stable Diffusion 3 Training on Intel Gaudi 2</a>
+          <div class="authors">Stability AI team</div>
+          <div class="role">I ported the training code and led the distributed-training benchmarks.</div>
+          <div><span class="venue">Benchmark</span>, 2024</div>
+          <div class="links">
+            <a href="https://stability.ai/news-updates/putting-the-ai-supercomputer-to-work">blog post</a>
+          </div>
+          <p>
+            On 16 accelerators,
+            <a href="https://arxiv.org/abs/2403.03206" title="Esser et al., Scaling Rectified Flow Transformers for High-Resolution Image Synthesis, ICML 2024">SD3</a> trained 1.5&times; faster on Gaudi 2 than on H100-80GB. Scaled to 256
+            accelerators, it processed over 3&times; more images per second than A100-80GB.
+          </p>
+        </div>
+      </article>
+
+
+      <article class="entry">
+        <div class="thumb">
+          CLAP
+          <img src="images/clap.jpg" alt="Language-action alignment for temporal localization" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/2204.12293">Contrastive Language-Action Pre-training for Temporal Localization</a>
+          <div class="authors">
+            <a href="https://mengmengxu.netlify.app/">Mengmeng Xu</a>, <a href="https://egundogdu.github.io/">Erhan Gundogdu</a>, <strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://www.bernardghanem.com/">Bernard Ghanem</a>, <a href="https://mike-dono-0815.github.io/homepage/">Michael Donoser</a>, <a href="https://lorisbaz.github.io/">Loris Bazzani</a>
+          </div>
+          <div><span class="venue">arXiv</span>, 2022</div>
+          <div class="links">
+            <a href="https://arxiv.org/abs/2204.12293">arXiv</a>
+          </div>
+          <p>
+            Pre-train video encoders against language describing the actions, so that they learn where in time
+            those actions happen.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry highlight">
+        <div class="thumb">
+          Top-k losses (TPAMI)
+          <img src="images/topk_tpami.jpg" alt="SUN397 scenes with ambiguous labels" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/1612.03663">Analysis and Optimization of Loss Functions for Multiclass, Top-k, and Multilabel Classification</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a></div>
+          <div><span class="venue">IEEE TPAMI</span>, 2018</div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/loss-functions-for-top-k-error">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/1612.03663">arXiv</a><span class="sep">/</span>
+            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a><span class="sep">/</span>
+            <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
+          </div>
+          <p>
+            One framework for multiclass, top-k, and multilabel losses: which are calibrated for top-k error, and how
+            to optimize all of them with
+            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">SDCA</a>.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Top-k Error (CVPR)
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/topk_demo_still.webp"><img class="contain" src="images/topk_demo.gif" alt="Animated training of softmax and truncated top-2 entropy on the circle data: top-2 accuracy 85% vs. 95%" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/1512.00486">Loss Functions for Top-k Error: Analysis and Insights</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a></div>
+          <div><span class="venue">CVPR</span>, 2016</div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/loss-functions-for-top-k-error">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/1512.00486">arXiv</a><span class="sep">/</span>
+            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a>
+          </div>
+          <p>
+            If you are graded on top-5 error, train for it. We introduce the smooth top-k SVM and top-k entropy losses,
+            which improve the top-k accuracy they target across 11 datasets.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Top-k SVM
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/topk_svm_still.webp"><img class="contain" src="images/topk_svm.webp" alt="Animated projection onto the top-k simplex for k = 1, 2, 3" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/1511.06683">Top-k Multiclass SVM</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a></div>
+          <div><span class="venue">NeurIPS</span>, 2015 &nbsp;<strong class="award">(Spotlight)</strong></div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/top-k-multiclass-svm">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/1511.06683">arXiv</a><span class="sep">/</span>
+            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
+          </div>
+          <p>
+            A multiclass SVM that only asks for the right answer to be among the top k, trained with a fast projection
+            onto the top-k simplex.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Output Kernel Learning
+          <img src="images/okl.jpg" alt="Learned sparse task-relationship matrix on SUN397" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/1511.05706">Efficient Output Kernel Learning for Multiple Tasks</a>
+          <div class="authors"><a href="https://pratikjawanpuria.com/">Pratik Jawanpuria</a>, <strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a></div>
+          <div><span class="venue">NeurIPS</span>, 2015</div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/output-kernel-learning">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/1511.05706">arXiv</a><span class="sep">/</span>
+            <a href="https://proceedings.neurips.cc/paper/2015/hash/a5cdd4aa0048b187f7182f1b9ce7a6a7-Abstract.html">proceedings</a>
+          </div>
+          <p>
+            Learn how tasks relate to each other at the same time as the tasks themselves, without giving up
+            efficiency.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Multitask Scene Classification
+          <img src="images/multitask.jpg" alt="Scene classification predictions comparing STL, MTL, and human judgments" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://openaccess.thecvf.com/content_cvpr_2014/html/Lapin_Scalable_Multitask_Representation_2014_CVPR_paper.html">Scalable Multitask Representation Learning for Scene Classification</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a></div>
+          <div><span class="venue">CVPR</span>, 2014</div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/scalable-multitask-representation-learning-for-scene-classification">project page</a><span class="sep">/</span>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2014/html/Lapin_Scalable_Multitask_Representation_2014_CVPR_paper.html">paper</a><span class="sep">/</span>
+            <a href="https://github.com/mlapin/cvpr14mtl">code</a>
+          </div>
+          <p>
+            Many scene categories, one shared representation, learned jointly with multitask learning that scales to
+            many classes.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry highlight">
+        <div class="thumb">
+          SVM+
+          <img src="images/svmplus.jpg" alt="Weighted SVM replicating an SVM+ solution" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://arxiv.org/abs/1306.3161">Learning Using Privileged Information: SVM+ and Weighted SVM</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>, <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a></div>
+          <div><span class="venue">Neural Networks</span>, 2014</div>
+          <div class="links">
+            <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/learning-using-privileged-information-svm-and-weighted-svm">project page</a><span class="sep">/</span>
+            <a href="https://arxiv.org/abs/1306.3161">arXiv</a>
+          </div>
+          <p>
+            Weighted SVM can always replicate an
+            <a href="https://doi.org/10.1016/j.neunet.2009.06.042" title="Vapnik and Vashist, A New Learning Paradigm: Learning Using Privileged Information, Neural Networks 2009">SVM+</a> solution. SVM+ turns out to be a weighted SVM in disguise, so
+            privileged information is best spent deciding which training examples matter.
+          </p>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          SHAVE
+          <img src="images/shave.jpg" alt="Illustration: moments for large populations, discrete states for small ones" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://doi.org/10.1145/1967701.1967746">SHAVE: Stochastic Hybrid Analysis of Markov Population Models</a>
+          <div class="authors"><strong title="Published as Maksim Lapin">Max Lapin</strong>, <a href="https://mosi.uni-saarland.de/people/linar/">Linar Mikeev</a>, <a href="https://mosi.uni-saarland.de/people/verena/">Verena Wolf</a></div>
+          <div><span class="venue">HSCC</span>, 2011</div>
+          <div class="links">
+            <a href="https://doi.org/10.1145/1967701.1967746">paper</a>
+          </div>
+          <p>
+            Treat large populations as continuous and small ones as discrete and stochastic, which makes transient
+            analysis of Markov population models tractable.
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ================= open source ================= -->
+  <section id="open-source">
+    <h2>Open Source</h2>
+    <div class="entries">
+      <article class="entry">
+        <div class="thumb">
+          libsdca
+          <img class="contain" src="images/topk_demo_still.webp" alt="Top-k losses demo built on the libsdca losses" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="libsdca/index.html">libsdca</a>
+          <div><span class="venue">C++11 / MATLAB</span>, MIT license</div>
+          <div class="links">
+            <a href="libsdca/index.html">project page</a><span class="sep">/</span>
+            <a href="https://github.com/mlapin/libsdca">GitHub</a><span class="sep">/</span>
+            <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a><span class="sep">/</span>
+            <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
+          </div>
+          <p>
+            Fast multiclass and multilabel training with
+            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">stochastic dual coordinate ascent</a>, and the reference
+            implementation of the top-k SVM and top-k entropy losses. A new release, with numerical fixes and
+            performance improvements, is on the way.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= industry work ================= -->
+  <section id="industry">
+    <h2>Industry Work</h2>
+    <p class="section-intro">
+      Applied science and product work at Amazon.
+    </p>
+
+    <div class="entries">
+
+      <article class="entry">
+        <div class="thumb">
+          Defect Detection
+          <img src="images/defects.jpg" alt="Damaged item detection in a fulfillment center" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://www.amazon.science/latest-news/the-surprisingly-subtle-challenge-of-automating-damage-detection">Automated Defect Detection in Fulfillment Centers</a>
+          <div><span class="venue">Amazon Robotics</span>, 2020&ndash;2023</div>
+          <div class="links">
+            <a href="https://www.amazon.science/latest-news/the-surprisingly-subtle-challenge-of-automating-damage-detection">Amazon Science</a>
+          </div>
+          <p>
+            Catch damaged items before they ship. I led the science roadmap and built one of the deployed models,
+            which treats anomaly detection on RGB-D images as retrieval.
+          </p>
+          <div class="outcome"><em>Outcome:</em> high detection recall with few false positives.</div>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Barcode-free ID
+          <picture><source media="(prefers-reduced-motion: reduce)" srcset="images/barcodefree_scanner_still.webp"><img src="images/barcodefree_scanner.webp" alt="Product identification without barcodes" loading="lazy" onerror="this.remove()"></picture>
+        </div>
+        <div>
+          <a class="title" href="https://www.amazon.science/latest-news/how-amazon-robotics-is-working-on-new-ways-to-eliminate-the-need-for-barcodes">Barcode-free Product Identification</a>
+          <div><span class="venue">Amazon Robotics</span>, 2020&ndash;2023</div>
+          <div class="links">
+            <a href="https://www.amazon.science/latest-news/how-amazon-robotics-is-working-on-new-ways-to-eliminate-the-need-for-barcodes">Amazon Science</a>
+          </div>
+          <p>
+            Recognize a product without scanning its barcode. I contributed to the multimodal RGB-D embedding model.
+          </p>
+          <div class="outcome"><em>Outcome:</em> deployed in fulfillment centers, with high recall and few false positives.</div>
+        </div>
+      </article>
+
+      <article class="entry">
+        <div class="thumb">
+          Discover Rooms
+          <img src="images/rooms.jpg" alt="Shoppable lifestyle image" loading="lazy" onerror="this.remove()">
+        </div>
+        <div>
+          <a class="title" href="https://www.yahoo.com/entertainment/secret-amazon-feature-makes-easy-170000535.html">Discover Rooms</a>
+          <div><span class="venue">Amazon.com</span>, 2017&ndash;2020</div>
+          <div class="links">
+            <a href="https://www.yahoo.com/entertainment/secret-amazon-feature-makes-easy-170000535.html">press</a>
+          </div>
+          <p>
+            Shop the room: products spotted in lifestyle photos link to matching items on Amazon. I designed and shipped
+            the visual-similarity model.
+          </p>
+          <div class="outcome"><em>Outcome:</em> launched across many marketplaces, substantially increasing product engagement.</div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ================= experience ================= -->
+  <section id="experience">
+    <h2>Experience &amp; Education</h2>
+    <dl class="timeline">
+      <dt>2026&ndash;now</dt>
+      <dd><strong>Member of Technical Staff</strong>, Reka AI<br>
+        <span class="what">Pre-training and world-model research for <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1</a>; led research on camera-controlled video generation.</span></dd>
+      <dt>2023&ndash;2026</dt>
+      <dd><strong>Research Scientist</strong>, Stability AI<br>
+        <span class="what">Image and video generation, controllability, and world models. Advised <a href="https://stable-cinemetrics.github.io/">Stable Cinemetrics</a> and <a href="https://stable-video-driven-portraits.github.io/">Stable Video-Driven Portraits</a>; core contributor to <a href="https://stability.ai/news-updates/introducing-stable-diffusion-3-5">Stable Diffusion 3.5</a> and its <a href="https://stability.ai/news-updates/sd3-5-large-controlnets">ControlNets</a>.</span></dd>
+      <dt>2020&ndash;2023</dt>
+      <dd><strong>Senior Applied Scientist</strong>, Computer Vision, Amazon<br>
+        <span class="what">Led the science roadmap for <a href="https://www.amazon.science/latest-news/the-surprisingly-subtle-challenge-of-automating-damage-detection">RGB-D damage detection</a> in Amazon Robotics and research on language&ndash;image retrieval for search; worked on <a href="https://www.amazon.science/latest-news/how-amazon-robotics-is-working-on-new-ways-to-eliminate-the-need-for-barcodes">barcode-free product identification</a>.</span></dd>
+      <dt>2017&ndash;2020</dt>
+      <dd><strong>Applied Scientist</strong>, Computer Vision, Amazon<br>
+        <span class="what">Designed and shipped the visual-similarity model behind <a href="https://www.yahoo.com/entertainment/secret-amazon-feature-makes-easy-170000535.html">Discover Rooms</a>.</span></dd>
+      <dt>2012&ndash;2017</dt>
+      <dd>
+        <strong>PhD in Computer Science</strong>, Saarland University &amp; Max Planck Institute for Informatics<br>
+        Thesis: <a href="https://publikationen.sulb.uni-saarland.de/handle/20.500.11880/26788"><em>Image
+        Classification with Limited Training Data and Class Ambiguity</em></a>.
+        Advisors: <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>.<br>
+        <span class="what">Loss functions for top-k and multilabel classification; <a href="libsdca/index.html">libsdca</a>.</span>
+      </dd>
+      <dt>2009&ndash;2012</dt>
+      <dd>
+        <strong>MSc in Computer Science</strong>, Saarland University<br>
+        Thesis: <em>Simplex Coding and Supervised Dictionary Learning</em>.
+      </dd>
+    </dl>
+  </section>
+
+  <!-- ================= patents & service ================= -->
+  <section id="patents">
+    <h2>Patents</h2>
+    <ul class="plain-list">
+      <li>
+        <em>Artificial intelligence interior design system.</em>
+        <a href="https://scholar.google.com/scholar?q=author:%22Anqi+Liang%22+Amazon">A. Liang</a>,
+        <a href="https://scholar.google.com/scholar?q=author:%22Rui+Chen%22+Amazon+%22Aleix+Martinez%22">R. Chen</a>,
+        <strong>M. Lapin</strong>,
+        <a href="https://aleix.ai/">A. M. Martinez</a>,
+        <a href="https://scholar.google.com/scholar?q=author:%22Gerard+Gjonej%22">G. Gjonej</a>.
+        <a href="https://patents.google.com/patent/US12346806B1/en">US Patent 12,346,806</a>, 2025.
+      </li>
+      <li>
+        <em>Virtual/augmented reality data evaluation.</em>
+        <a href="http://resume.bereft.net/">B. S. Bowman</a>,
+        <strong>M. Lapin</strong>,
+        <a href="http://www.leodirac.com/">L. P. Dirac</a>.
+        <a href="https://patents.google.com/patent/US11853390B1/en">US Patent 11,853,390</a>, 2023.
+      </li>
+      <li>
+        <em>Machine learning system to score alt-text in image data.</em>
+        <a href="https://lorisbaz.github.io/">L. Bazzani</a>,
+        <strong>M. Lapin</strong>,
+        <a href="https://scholar.google.com/citations?user=UD177Q0AAAAJ">F. Hieber</a>,
+        <a href="https://scholar.google.com/citations?user=WrbJw1wAAAAJ">T. Domhan</a>.
+        <a href="https://patents.google.com/patent/US11361212B2/en">US Patent 11,361,212</a>, 2022.
+      </li>
+    </ul>
+  </section>
+
+  <section id="service">
+    <h2>Service</h2>
+    <ul class="plain-list">
+      <li>Reviewer: NeurIPS, CVPR, ICCV, ECCV, TPAMI, IJCV, JMLR.</li>
+      <li>Co-organized the 10th Amazon Machine Learning Workshop (96 attendees, 29 talks), 2019.</li>
+      <li>
+        Teaching assistant at Saarland University:
+        <ul>
+          <li><em>Machine Learning</em> (<a href="https://cispa.saarland/group/fritz/">Mario Fritz</a> and <a href="http://andres.sc/">Bjoern Andres</a>), Fall 2014.</li>
+          <li><em>Probabilistic Graphical Models and their Applications</em> (<a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a> and <a href="http://andres.sc/">Bjoern Andres</a>), Fall 2013.</li>
+          <li><em>Machine Learning</em> (<a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>), Fall 2010.</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Design and source code from <a href="https://github.com/jonbarron/jonbarron.github.io">Jon Barron's website</a>.
+  </footer>
+
+</div>
+
+</body>
+</html>

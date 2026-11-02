@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top-k Losses Demo</title>
+  <meta name="author" content="Max Lapin">
+  <meta name="description" content="Interactive demo: see how softmax, multiclass SVM, and top-k losses push on a single example, then train linear classifiers with them on the synthetic circle data from Loss Functions for Top-k Error (CVPR 2016).">
+  <meta property="og:title" content="Top-k losses: interactive demo">
+  <meta property="og:description" content="Drop a starting point and watch softmax and top-k losses optimize side by side, and see why optimizing top-1 can cost you top-2.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:creator" content="@mlapin_">
+  <link rel="icon" type="image/png" href="../images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../stylesheet.css">
+  <style>
+    :root {
+      --c0: #E69F00;  /* orange, Okabe-Ito */
+      --c1: #56B4E9;  /* sky blue */
+      --c2: #009E73;  /* bluish green */
+      --pa: #222;     /* model A */
+      --pb: #CC79A7;  /* model B */
+      --miss: #D55E00;
+      --card: #f8f9fb;
+    }
+    .page { max-width: 920px; }
+    .back { font-size: 14px; }
+    .cue { color: var(--muted); font-style: italic; font-size: 14px; }
+    h2.step { font-size: 20px; font-weight: 400; margin: 28px 0 4px; }
+    h2.step b { font-weight: 700; }
+
+    .card { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 14px; }
+    .bar + .bar { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }
+    .bar label { display: inline-flex; align-items: center; gap: 6px; }
+    .bar .grow { flex: 1; }
+    .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: #fff; }
+    .seg button { font: inherit; font-size: 13px; border: 0; background: transparent; padding: 4px 10px; cursor: pointer; color: var(--text); }
+    .seg button + button { border-left: 1px solid var(--rule); }
+    .seg button[aria-pressed="true"] { background: #fff4e5; color: #8a4b00; box-shadow: inset 0 0 0 1px #f0b56a; }
+    button.btn, select, input[type=range] { font: inherit; font-size: 14px; }
+    button.btn { border: 1px solid var(--rule); background: #fff; border-radius: 4px; padding: 3px 10px; cursor: pointer; color: var(--text); }
+    button.btn:hover, button.btn:focus-visible, .seg button:hover { color: var(--link-hover); }
+    select { padding: 2px 4px; border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--text); }
+    .val { font-variant-numeric: tabular-nums; min-width: 4.2em; display: inline-block; }
+    .tag {
+      display: inline-block; width: 20px; height: 20px; border-radius: 50%; color: #fff; text-align: center;
+      line-height: 20px; font-weight: 700; font-size: 12px; flex: none;
+    }
+    .o { color: #b37a00; font-weight: 700; } .b { color: #2a8cc4; font-weight: 700; } .g { color: var(--c2); font-weight: 700; }
+    .A { color: var(--pa); font-weight: 700; } .B { color: var(--pb); font-weight: 700; }
+
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .panel { min-width: 0; background: #fff; border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+    .panel-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .panel canvas { display: block; width: 100%; touch-action: none; }
+    canvas.sq { aspect-ratio: 1; margin-top: 4px; }
+    canvas.land { aspect-ratio: 1; margin-top: 4px; cursor: crosshair; }
+    canvas.strip { height: 172px; margin-top: 6px; }
+    h3.sub { font-size: 16px; font-weight: 700; margin: 22px 0 4px; }
+    .data-grid { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 18px; align-items: center; }
+    #data { display: block; width: 100%; aspect-ratio: 1; }
+    .data-table td, .data-table th { text-align: left !important; }
+    .sand-wrap { max-width: 460px; margin: 0 auto; }
+    #sand .stats { font-size: 15px; }
+    .layers { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin: 6px 0 2px; }
+    .layers label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+    .sw { display: inline-block; width: 16px; height: 12px; border-radius: 2px; flex: none; }
+    .sw-labels { background: linear-gradient(to bottom, var(--c0) 0 40%, var(--c1) 40% 75%, var(--c2) 75%); }
+    .sw-g1 { background: rgba(86, 180, 233, 0.22); box-shadow: inset 0 0 0 1px rgba(86, 180, 233, 0.45); }
+    .sw-g2 { background: repeating-linear-gradient(135deg, var(--c1) 0 1.6px, transparent 1.6px 4.5px); }
+    .sw-miss { background: linear-gradient(to bottom, rgba(230, 159, 0, 0.22) 0 72%, var(--miss) 72%); }
+    .sw-points { background: radial-gradient(circle at 25% 60%, var(--c0) 0 2px, transparent 2.5px),
+      radial-gradient(circle at 55% 30%, var(--c1) 0 2px, transparent 2.5px), radial-gradient(circle at 82% 70%, var(--c2) 0 2px, transparent 2.5px); }
+    .insp { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 4px; }
+    table.rank { border-collapse: collapse; font-size: 13px; }
+    table.rank caption { text-align: left; font-weight: 700; padding: 2px 0; }
+    table.rank th, table.rank td { padding: 1px 8px; text-align: right; }
+    table.rank th { font-weight: 400; color: var(--muted); border-bottom: 1px solid var(--rule); }
+    table.rank td:nth-child(2), table.rank th:nth-child(2) { text-align: left; }
+    table.rank tr.cut td { border-bottom: 1.5px dashed #999; }
+    .chip { display: inline-block; padding: 0 7px; margin: 2px 4px 2px 0; border-radius: 10px; font-size: 12px; font-weight: 400; }
+    .chip.ok { background: #e2f3e9; color: #11663a; }
+    .chip.bad { background: #fbe4da; color: #a33a00; }
+    .chip.part { background: #fff1d6; color: #7a5200; }
+    .stats { font-size: 14px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+    .stats .big { font-weight: 700; }
+    .note { font-size: 13px; color: var(--muted); min-height: 1.4em; }
+    .push { display: grid; grid-template-columns: auto 1fr 3em; align-items: center; gap: 2px 8px; font-size: 13px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .push i { display: block; height: 8px; border-radius: 2px; }
+    .readout { font-size: 14px; min-height: 3em; margin: 8px 2px 0; font-variant-numeric: tabular-nums; }
+    #chart { display: block; width: 100%; height: 190px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; margin: 6px 0 0; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .ln { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
+
+    .prose h2 { margin-top: 32px; }
+    .formula { font-style: italic; background: var(--thumb-bg); padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 2px 0; }
+    table.results { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; margin: 8px 0; }
+    table.results th, table.results td { padding: 3px 12px; border-bottom: 1px solid var(--rule); text-align: right; }
+    table.results th:first-child, table.results td:first-child { text-align: left; }
+    .refs-list { font-size: 14px; padding-left: 20px; }
+    .refs-list li { margin: 4px 0; }
+    pre.bib { background: var(--thumb-bg); padding: 10px 12px; overflow-x: auto; font-size: 13px; border-radius: 4px; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    @media (max-width: 680px) {
+      .panels, .data-grid { grid-template-columns: 1fr; }
+      .bar .grow { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="page project">
+
+  <a class="back" href="../index.html">&larr; Max Lapin</a>
+  <header class="project-head">
+    <h1>Top-k losses, interactively</h1>
+    <p class="subtitle">
+      A companion to <i>Loss Functions for Top-k Error: Analysis and Insights</i> (CVPR 2016) and
+      <i>Top-k Multiclass SVM</i> (NeurIPS 2015), with Matthias Hein and Bernt Schiele.
+    </p>
+    <nav class="pills" aria-label="Related links">
+      <a href="https://arxiv.org/abs/1512.00486">CVPR 2016 paper</a>
+      <a href="https://arxiv.org/abs/1511.06683">NeurIPS 2015 paper</a>
+      <a href="simplex.html">Simplex demo</a>
+      <a href="../libsdca/index.html">libsdca</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </header>
+  <p>
+    When a model is graded on its top <i>k</i> guesses, it only needs the true class somewhere in its top <i>k</i>.
+    Softmax does not know that: it keeps pushing the true class towards first place. The top-k losses are built for the
+    metric you actually report: they stop pushing once the job is done and spend the model's capacity where it counts.
+    Pick two losses, then see how they behave on one example and on a small problem with a linear model.
+  </p>
+
+  <div class="card" role="group" aria-label="Losses to compare">
+    <div class="bar">
+      <span>Compare</span>
+      <div class="seg" id="presets">
+        <button type="button" data-preset="fig4">Softmax vs. truncated top-2</button>
+        <button type="button" data-preset="convex">Top-2 SVM vs. top-2 entropy</button>
+        <button type="button" data-preset="top1">Top-1: SVM vs. softmax</button>
+      </div>
+    </div>
+    <div class="bar">
+      <label><span class="tag" style="background:var(--pa)">A</span><select id="lossA" aria-label="Loss for model A"></select></label>
+      <label><span class="tag" style="background:var(--pb)">B</span><select id="lossB" aria-label="Loss for model B"></select></label>
+      <label>k <select id="k"><option value="1">1</option><option value="2" selected>2</option></select></label>
+    </div>
+  </div>
+
+  <!-- ===================== 1. one example ===================== -->
+  <h2 class="step"><b>1.</b> One example: where does each loss push?</h2>
+  <p>
+    Before any model or dataset, it helps to see what each loss <i>asks for</i>. Take one example whose true class
+    is <span class="o">orange</span>, with two wrong classes, <span class="b">blue</span> and <span class="g">green</span>.
+    A loss only looks at how far each wrong class scores above the true one, so every possible state of this example
+    is a point on the plane below. Lines are loss contours, and the shaded corner is a top-<span class="kval">2</span>
+    error. Here the three scores are free to move, and gradient descent moves them downhill.
+  </p>
+  <p>
+    With free scores, every loss eventually puts orange first. What sets the losses apart is the <i>direction</i> of
+    the push and when a loss considers the job done, and that is exactly what decides the outcome in section 2.
+  </p>
+  <div class="bar" style="margin:6px 0 2px">
+    <span>Try a start:</span>
+    <div class="seg" id="oneStarts">
+      <button type="button" data-x="2.2" data-y="1.2">Orange 3rd</button>
+      <button type="button" data-x="2.5" data-y="-1.5">Orange 2nd</button>
+      <button type="button" data-x="-0.4" data-y="-0.6">Orange 1st, barely</button>
+    </div>
+  </div>
+  <p class="cue" id="oneCaption" style="margin-top:4px"></p>
+  <div class="panels" id="land">
+    <div class="panel" data-id="A">
+      <div class="panel-head"><span class="tag" style="background:var(--pa)">A</span><span class="lname"></span></div>
+      <canvas class="land" aria-label="Loss landscape for model A"></canvas>
+      <div class="stats"></div>
+      <div class="push"></div>
+    </div>
+    <div class="panel" data-id="B">
+      <div class="panel-head"><span class="tag" style="background:var(--pb)">B</span><span class="lname"></span></div>
+      <canvas class="land" aria-label="Loss landscape for model B"></canvas>
+      <div class="stats"></div>
+      <div class="push"></div>
+    </div>
+  </div>
+  <p class="cue">
+    (Click or drag on either plot to drop your own start. The bars show how hard the loss pushes each wrong class
+    down right now; the red arrow is the same push drawn on the plane.)
+  </p>
+  <p>
+    <b>What this shows.</b> Softmax always pushes every class that scores near or above orange, and pushes hardest on
+    the strongest rival, because it only stops when orange is first by a wide margin. Truncated top-2 entropy pushes
+    only the <i>weaker</i> rival: once orange beats one of the two, it is in the top 2, and the loss ignores the
+    other. With one example, both end up fine. But in a real model, scores are not free. One set of weights scores
+    every example, so a push that helps one example moves the scores of all the others. A loss that keeps pushing
+    after the job is done spends the model's limited flexibility on something the metric does not reward. The next
+    section shows where that bites.
+  </p>
+
+  <!-- ===================== 2. circle ===================== -->
+  <h2 class="step"><b>2.</b> Many examples, one linear model</h2>
+
+  <h3 class="sub">The data</h3>
+  <p>
+    Each example is a point on a circle. The circle is split into five segments, and each segment has its own mix of
+    labels. Every segment gets the same number of points, so the long bottom segment S4 is sparser than the rest.
+    Segments S1, S2, and S5 are pure. S3 and S4 are ambiguous: an example there might carry either label, so even a
+    perfect classifier cannot always be right on top-1. A top-2 guess can be.
+  </p>
+  <div class="data-grid">
+    <canvas id="data" aria-label="The data: training points on the circle, colored by label, and the label mix of each segment"></canvas>
+    <div>
+      <table class="results data-table">
+        <thead><tr><th>Segment</th><th>Arc</th><th>Labels</th><th>Best top-2 guess</th></tr></thead>
+        <tbody>
+          <tr><td>S1</td><td>1/7</td><td>100% <span class="b">blue</span></td><td><span class="b">blue</span> + any</td></tr>
+          <tr><td>S2</td><td>1/7</td><td>100% <span class="o">orange</span></td><td><span class="o">orange</span> + any</td></tr>
+          <tr><td>S3</td><td>1/7</td><td>50% <span class="g">green</span>, 40% <span class="o">orange</span>, 10% <span class="b">blue</span></td><td><span class="g">green</span> + <span class="o">orange</span> (90%)</td></tr>
+          <tr><td>S4</td><td>3/7</td><td>70% <span class="b">blue</span>, 30% <span class="o">orange</span></td><td><span class="b">blue</span> + <span class="o">orange</span></td></tr>
+          <tr><td>S5</td><td>1/7</td><td>100% <span class="g">green</span></td><td><span class="g">green</span> + any</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:14px">
+        Each segment holds a fifth of the points. Taking the best guess everywhere gives 84.0% top-1 and 98.0% top-2
+        accuracy. That is the ceiling. Note that <span class="o">orange</span> must be in the top 2 in S2, S3, and S4.
+      </p>
+    </div>
+  </div>
+
+  <h3 class="sub">How a linear model scores the circle</h3>
+  <p>
+    The model scores class <i>j</i> at a point <i>x</i> on the circle as <i>&lang;w<sub>j</sub>, x&rang;</i>.
+    Each weight vector <i>w<sub>j</sub></i> is an arrow in the same plane. To score a direction, drop each arrow's
+    shadow onto it: the class whose shadow reaches furthest is the first guess, the next one the second guess.
+  </p>
+  <p>
+    The ring around the circle is the data from above: in each segment, the thickness of a color is the share of
+    that label. Inside the circle, the stripes are the model's second guess in each direction. Switch on
+    <i>1st guess</i> to shade in the first guess as well, and <i>Missed by top <span class="kval">2</span></i> to
+    fade the part of the ring that the top <span class="kval">2</span> misses and give it a red edge.
+  </p>
+  <p class="cue">
+    (Drag the arrow tips. Can you keep <span class="o">orange</span> first in S2 and also in the top 2 across S4?
+    Click anywhere on the circle to pin a direction and read off all three scores, then drag an arrow and watch
+    them change. The marker on the circle turns red when the top 2 misses some of the labels there.)
+  </p>
+  <div class="sand-wrap">
+    <div class="panel" id="sand">
+      <div class="panel-head"><span class="tag" style="background:#888">?</span><span>Your arrows</span>
+        <span class="grow" style="flex:1"></span><button class="btn" id="sandReset" type="button">Reset</button></div>
+      <div class="layers" role="group" aria-label="Layers"></div>
+      <canvas class="sq" aria-label="Your arrows on the circle: true labels, first guess shading, second guess stripes"></canvas>
+      <div class="stats"></div>
+      <div class="readout" id="sandReadout" aria-live="off"></div>
+    </div>
+  </div>
+  <p>
+    Three arrows give each class one contiguous arc as first guess, and the second guesses are just as rigid. You
+    cannot cover every segment. Something has to give, and the loss decides what.
+  </p>
+
+  <h3 class="sub">Training the model with each loss</h3>
+  <p>
+    Now train the arrows with the two losses picked at the top, from the same start. Faint lines trace where the
+    arrow tips travel. The strip under each circle is the same picture cut open at 0&deg; and laid flat.
+  </p>
+  <p class="cue">(Press Play. Drag an arrow tip to choose where training starts. Hover or click to inspect a direction.)</p>
+
+  <div class="card" role="group" aria-label="Training controls">
+    <div class="bar">
+      <button class="btn" id="play" type="button">Play</button>
+      <button class="btn" id="reset" type="button">Reset</button>
+      <label>Start
+        <select id="start">
+          <option value="segments">Arrows point at their pure segments</option>
+          <option value="trap">A start that traps the truncated loss</option>
+          <option value="small">Tiny random weights</option>
+          <option value="random">Random</option>
+          <option value="custom" hidden>Custom (dragged)</option>
+        </select>
+      </label>
+      <span class="grow"></span>
+      <label>Speed
+        <select id="speed"><option value="1" selected>1&times;</option><option value="4">4&times;</option><option value="16">16&times;</option></select>
+      </label>
+    </div>
+    <div class="bar">
+      <label>&lambda; <input type="range" id="lambda" min="-5" max="0" step="0.25" value="-3"><span class="val" id="lambdaVal"></span></label>
+      <label>Training points <input type="range" id="n" min="50" max="1000" step="50" value="200"><span class="val" id="nVal"></span></label>
+      <button class="btn" id="resample" type="button">New sample</button>
+      <label><input type="checkbox" id="warm" checked> Warm-start truncated loss from softmax</label>
+    </div>
+    <div class="bar"><span>Layers</span><div class="layers" role="group" aria-label="Layers"></div></div>
+  </div>
+
+  <div class="panels" id="circ">
+    <div class="panel" data-id="A">
+      <div class="panel-head"><span class="tag" style="background:var(--pa)">A</span><span class="lname"></span></div>
+      <canvas class="sq" aria-label="Model A on the circle: weight arrows, true labels, first and second guesses"></canvas>
+      <canvas class="strip" aria-label="Model A unrolled: true labels, training points, class scores, guesses"></canvas>
+      <div class="stats"></div>
+      <div class="note"></div>
+    </div>
+    <div class="panel" data-id="B">
+      <div class="panel-head"><span class="tag" style="background:var(--pb)">B</span><span class="lname"></span></div>
+      <canvas class="sq" aria-label="Model B on the circle: weight arrows, true labels, first and second guesses"></canvas>
+      <canvas class="strip" aria-label="Model B unrolled: true labels, training points, class scores, guesses"></canvas>
+      <div class="stats"></div>
+      <div class="note"></div>
+    </div>
+  </div>
+  <div class="readout" id="readout" aria-live="off"></div>
+  <p class="cue">
+    (In the strip, a linear score on a circle is a cosine, so each class gets one smooth bump. A training point
+    shrinks when its loss stops pulling on the model, on the circle too if training points are switched on.)
+  </p>
+
+  <div class="card">
+    <canvas id="chart" aria-label="Accuracy during training"></canvas>
+    <div class="legend" role="group" aria-label="Accuracy chart legend">
+      <span><i class="ln" style="border-color:var(--pa)"></i>A top-2</span>
+      <span><i class="ln" style="border-color:var(--pa);border-top-style:dotted"></i>A top-1</span>
+      <span><i class="ln" style="border-color:var(--pb)"></i>B top-2</span>
+      <span><i class="ln" style="border-color:var(--pb);border-top-style:dotted"></i>B top-1</span>
+      <span><i class="ln" style="border-color:#999;border-top-style:dashed"></i>best possible</span>
+    </div>
+  </div>
+  <p class="cue" style="margin-top:0">
+    (Accuracy is computed numerically against the data distribution, so it is a test score, not a training score.)
+  </p>
+  <button class="btn" id="summarize" type="button">Read current results</button>
+  <p id="results-summary" role="status" aria-live="polite" aria-atomic="true"></p>
+
+  <div class="prose">
+    <h2>The losses</h2>
+    <p>Let <i>a<sub>j</sub> = f<sub>j</sub>(x) &minus; f<sub>y</sub>(x)</i> be how far class <i>j</i> scores above
+      the true class <i>y</i>. These are the two axes of the first plot.</p>
+    <ul>
+      <li><strong>Softmax (cross-entropy).</strong>
+        <span class="formula">log(1 + &Sigma;<sub>j&ne;y</sub> exp a<sub>j</sub>)</span>.
+        Every wrong class with a high score costs something, even when the true class is safely in the top <i>k</i>.</li>
+      <li><strong>Multiclass SVM</strong> (<a href="#ref-cs01">Crammer and Singer, 2001</a>).
+        <span class="formula">max(0, max<sub>j&ne;y</sub> (1 + a<sub>j</sub>))</span>.
+        Zero once the true class beats every other class by a margin of 1, and it only ever pushes the worst offender.</li>
+      <li><strong>Top-k SVM</strong> (our <a href="#ref-lhs15">NeurIPS 2015 paper</a>). The hinge on the average of the <i>k</i> largest entries of
+        <span class="formula">[j&ne;y] + a<sub>j</sub></span>, where the true class contributes a 0. It upper-bounds
+        the top-k error more tightly than the multiclass SVM and spreads its push over <i>k</i> classes, each at most
+        1/<i>k</i>. With three classes and <i>k</i> = 2 its zero region is the same as the SVM's.</li>
+      <li><strong>Top-k entropy</strong> (our <a href="#ref-lhs16">CVPR 2016 paper</a>). The convex conjugate of softmax, with its domain restricted to
+        the top-k simplex. This caps how hard a single wrong class can be pushed. It has no closed form, but an
+        <i>O</i>(<i>km</i>) algorithm computes it exactly, and this page runs that algorithm. With three classes and
+        <i>k</i> = 2 the top-k simplex shrinks to a single ray, so the loss only sees the average gap and pushes both
+        wrong classes equally: its contours in the first plot are straight lines.</li>
+      <li><strong>Truncated top-k entropy</strong> (also from the <a href="#ref-lhs16">CVPR 2016 paper</a>). Softmax with the <i>k</i>&minus;1 highest-scoring
+        wrong classes left out of the sum. It no longer cares which classes come first, only that the true class
+        makes the top <i>k</i>. That focus is what makes it nonconvex: in the first plot its contours bend around a corner.</li>
+    </ul>
+    <p>With <i>k</i> = 1, all three top-k losses reduce to their top-1 versions: multiclass SVM or softmax.</p>
+
+    <h2>The circle problem</h2>
+    <p>
+      This is the synthetic example from Section 4 of our <a href="#ref-lhs16">CVPR 2016 paper</a>. The interval [0, 7] is split into five
+      segments: four of length 1 and one of length 3. Every segment gets the same number of points, drawn uniformly
+      within it, and each segment has its own class probabilities, shown in the ring. Then the position is wrapped
+      onto the unit circle, and the model is linear in the two coordinates, with no bias:
+      <i>f<sub>j</sub>(x) = &lang;w<sub>j</sub>, x&rang;</i>, so each weight vector <i>w<sub>j</sub></i> is an arrow
+      in the same plane as the data. All losses minimize the same regularized objective, one over <i>n</i> times the
+      sum of losses plus &lambda;/2&thinsp;&#8214;W&#8214;&sup2;, with full-batch Adam
+      (<a href="#ref-kb15">Kingma and Ba, 2015</a>) from the same start.
+    </p>
+    <p>
+      The convex losses reach the same solution wherever you drop the arrows. The truncated loss is not convex, so
+      its start matters. As in the paper, this page starts it from the softmax solution and lets it improve from
+      there. Clear the warm-start box and try the trap preset to see why that helps.
+    </p>
+
+    <h2>What to take away</h2>
+    <p>
+      On the default sample, softmax reaches 84.9% top-2 accuracy and truncated top-2 entropy 95.2%, close to the best
+      possible 98%. Softmax ranks <span class="o">orange</span> last on part of S4 and loses its 30% share there,
+      because it is busy making orange first where orange is certain. The truncated loss does not chase top-1
+      accuracy, which the metric does not reward, and keeps orange in the top 2 almost everywhere.
+    </p>
+    <p>
+      The circle is small on purpose, but the situation it captures is common: many classes, ambiguous labels, a
+      model that cannot fit everything, and a metric that forgives the first <i>k</i>&minus;1 misses. That is when it
+      pays to train for the metric you report. On 11 datasets in the paper, from text classification to scene
+      recognition, the smooth top-k SVM and top-k entropy improved the top-k accuracy they targeted, and fine-tuning a
+      scene network with the top-5 SVM gave the best top-1 to top-5 accuracy of all the losses we tried on Places 205.
+    </p>
+    <p>
+      The convex losses here, including top-k entropy, are implemented in <a href="../libsdca/index.html">libsdca</a>, the
+      library I wrote for these papers, which trains them with stochastic dual coordinate ascent
+      (<a href="#ref-ssz13">Shalev-Shwartz and Zhang, 2013</a>, <a href="#ref-ssz16">2016</a>).
+    </p>
+
+    <h2 id="references">References</h2>
+    <ul class="refs-list">
+      <li id="ref-cs01">K. Crammer and Y. Singer.
+        <a href="https://www.jmlr.org/papers/v2/crammer01a.html">On the algorithmic implementation of multiclass
+        kernel-based vector machines</a>. <i>JMLR</i>, 2:265&ndash;292, 2001.</li>
+      <li id="ref-kb15">D. P. Kingma and J. Ba. <a href="https://arxiv.org/abs/1412.6980">Adam: A method for
+        stochastic optimization</a>. In <i>ICLR</i>, 2015.</li>
+      <li id="ref-lhs15">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1511.06683">Top-k
+        multiclass SVM</a>. In <i>NeurIPS</i>, 2015.</li>
+      <li id="ref-lhs16">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1512.00486">Loss
+        functions for top-k error: Analysis and insights</a>. In <i>CVPR</i>, 2016.</li>
+      <li id="ref-ssz13">S. Shalev-Shwartz and T. Zhang.
+        <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html">Stochastic dual coordinate ascent methods
+        for regularized loss minimization</a>. <i>JMLR</i>, 14:567&ndash;599, 2013.</li>
+      <li id="ref-ssz16">S. Shalev-Shwartz and T. Zhang. <a href="https://doi.org/10.1007/s10107-014-0839-0">Accelerated
+        proximal stochastic dual coordinate ascent for regularized loss minimization</a>. <i>Mathematical
+        Programming</i>, 155:105&ndash;145, 2016.</li>
+    </ul>
+
+    <h2 id="cite">Cite</h2>
+<pre class="bib">@inproceedings{lapin2015topk,
+  title     = {Top-k Multiclass {SVM}},
+  author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
+  booktitle = {NeurIPS},
+  year      = {2015}
+}
+
+@inproceedings{lapin2016loss,
+  title     = {Loss Functions for Top-k Error: Analysis and Insights},
+  author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
+  booktitle = {CVPR},
+  year      = {2016}
+}</pre>
+  </div>
+
+  <footer>
+    Demo format inspired by <a href="https://jonbarron.info/softmaxfix/demo.html">Jon Barron's softmax demo</a>.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var M = 3;
+  var CNAME = ['orange', 'blue', 'green'];
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- losses: each returns {L, g} with g = dL/df ----------
+  function lse(v) {
+    var m = -Infinity, i, s = 0;
+    for (i = 0; i < v.length; i++) if (v[i] > m) m = v[i];
+    if (m === -Infinity) return m;
+    for (i = 0; i < v.length; i++) s += Math.exp(v[i] - m);
+    return m + Math.log(s);
+  }
+  function softplus(x) { return x > 0 ? x + Math.log1p(Math.exp(-x)) : Math.log1p(Math.exp(x)); }
+
+  function softmaxLoss(f, y) {
+    var Z = lse(f), g = [];
+    for (var j = 0; j < M; j++) g.push(Math.exp(f[j] - Z));
+    g[y] -= 1;
+    return { L: Z - f[y], g: g };
+  }
+
+  // Top-k hinge alpha, eq. (6). k = 1 is the multiclass SVM of Crammer and Singer.
+  function topkHinge(f, y, k) {
+    var v = [], idx = [], j, g = [0, 0, 0], L = 0;
+    for (j = 0; j < M; j++) { v.push((j === y ? 0 : 1) + f[j] - f[y]); idx.push(j); }
+    idx.sort(function (p, q) { return v[q] - v[p]; });
+    for (j = 0; j < k; j++) L += v[idx[j]];
+    L /= k;
+    if (L <= 0) return { L: 0, g: g };
+    for (j = 0; j < k; j++) if (idx[j] !== y) { g[idx[j]] += 1 / k; g[y] -= 1 / k; }
+    return { L: L, g: g };
+  }
+
+  // Top-k entropy, eq. (15), computed with the algorithm in Sec. 2.4 (eqs. 18-20).
+  function topkEntropy(f, y, k) {
+    var idx = [], a = [], j;
+    for (j = 0; j < M; j++) if (j !== y) { idx.push(j); a.push(f[j] - f[y]); }
+    var d = a.length;
+    k = Math.min(k, d);
+    var order = a.map(function (_, i) { return i; }).sort(function (p, q) { return a[q] - a[p]; });
+    var nU = 0, rho, alpha, logQ, logs, log1ms, s, t, hasM;
+    for (;;) {
+      rho = nU / k; alpha = 0;
+      for (j = 0; j < nU; j++) alpha += a[order[j]];
+      alpha /= k;
+      var aM = order.slice(nU).map(function (i) { return a[i]; });
+      hasM = aM.length > 0;
+      var logZ = hasM ? lse(aM) : -Infinity;
+      logQ = (rho < 1 ? (1 - rho) * Math.log(1 - rho) : 0) - rho * Math.log(k) - alpha - (hasM ? (1 - rho) * logZ : 0);
+      logs = -softplus(logQ); log1ms = logQ - softplus(logQ); s = Math.exp(logs);
+      if (!hasM) { t = 0; break; }
+      t = logZ + softplus(logQ) - Math.log(1 - rho);
+      var mid = logs - Math.log(k) + t;
+      var ok = aM[0] <= mid + 1e-12 && (nU === 0 || mid <= a[order[nU - 1]] + 1e-12);
+      if (ok || nU + 1 >= k + (d > k ? 0 : 1)) break;
+      nU++;
+    }
+    var x = new Array(d), sx = 0;
+    for (j = 0; j < d; j++) x[j] = 0;
+    for (j = 0; j < d; j++) {
+      var i = order[j];
+      x[i] = j < nU ? s / k : Math.exp(a[i] - t);
+      sx += x[i];
+    }
+    var L = alpha * s - (nU ? rho * s * (logs - Math.log(k)) : 0) + (rho < 1 ? (1 - rho) * s * t : 0) - (1 - s) * log1ms;
+    var g = [0, 0, 0];
+    for (j = 0; j < d; j++) g[idx[j]] = x[j];
+    g[y] = -sx;
+    return { L: L, g: g };
+  }
+
+  // Truncated top-k entropy, eq. (22): drop the k-1 highest-scoring wrong classes from the softmax sum.
+  function truncEntropy(f, y, k) {
+    var others = [], j;
+    for (j = 0; j < M; j++) if (j !== y) others.push(j);
+    others.sort(function (p, q) { return f[p] - f[q]; });
+    var J = others.slice(0, M - k), z = J.map(function (i) { return f[i] - f[y]; });
+    var g = [0, 0, 0];
+    if (!J.length) return { L: 0, g: g };
+    var L = softplus(lse(z));
+    for (j = 0; j < J.length; j++) { var q = Math.exp(z[j] - L); g[J[j]] += q; g[y] -= q; }
+    return { L: L, g: g };
+  }
+
+  var LOSSES = {
+    softmax: { name: 'Softmax (cross-entropy)', fn: function (f, y) { return softmaxLoss(f, y); }, usesK: false },
+    svm:     { name: 'Multiclass SVM', fn: function (f, y) { return topkHinge(f, y, 1); }, usesK: false },
+    topksvm: { name: 'Top-k SVM', fn: topkHinge, usesK: true },
+    topkent: { name: 'Top-k entropy', fn: topkEntropy, usesK: true },
+    trunc:   { name: 'Truncated top-k entropy', fn: truncEntropy, usesK: true }
+  };
+  function lossName(key, k) { return LOSSES[key].usesK ? LOSSES[key].name.replace('-k', '-' + k) : LOSSES[key].name; }
+
+  function rank(f) {
+    var r = [0, 1, 2];
+    r.sort(function (p, q) { return f[q] - f[p] || p - q; });
+    return r;
+  }
+
+  // ---------- the circle problem from Sec. 4 of the CVPR 2016 paper ----------
+  var SEG = [0, 1, 2, 3, 6, 7];               // segment edges on [0, 7]
+  var PY = [[0, 1, 0.4, 0.3, 0],              // p(orange | segment)
+            [1, 0, 0.1, 0.7, 0],              // p(blue | segment)
+            [0, 0, 0.5, 0,   1]];             // p(green | segment)
+  var BAYES = { 1: 4.2 / 5, 2: 4.9 / 5 };     // best achievable top-1 / top-2 accuracy
+  function segOf(t) { for (var s = 0; s < 4; s++) if (t < SEG[s + 1]) return s; return 4; }
+  function segLen(s) { return SEG[s + 1] - SEG[s]; }
+  function segOfAngle(th) { var t = (th / (2 * Math.PI)) % 1; if (t < 0) t += 1; return segOf(7 * t); }
+  function pAt(s) { return [PY[0][s], PY[1][s], PY[2][s]]; }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  // Each segment gets the same share of the points, whatever its length, so S4 is sparser.
+  function sample(n, seed) {
+    var rnd = mulberry32(seed * 7919 + 17), X = [], Y = [], TH = [];
+    for (var i = 0; i < n; i++) {
+      var s = Math.min(4, Math.floor(5 * rnd())), t = SEG[s] + segLen(s) * rnd(), u = rnd(), y = 0, c = PY[0][s];
+      while (u >= c && y < M - 1) { y++; c += PY[y][s]; }
+      var th = 2 * Math.PI * t / 7;
+      X.push([Math.cos(th), Math.sin(th)]); Y.push(y); TH.push(th);
+    }
+    return { X: X, Y: Y, TH: TH };
+  }
+
+  var GRID = (function () {
+    var G = 3500, X = [], P = [], Wt = [];
+    for (var i = 0; i < G; i++) {
+      var t = (i + 0.5) * 7 / G, th = 2 * Math.PI * t / 7, s = segOf(t);
+      X.push([Math.cos(th), Math.sin(th)]); P.push(pAt(s)); Wt.push(7 / (5 * segLen(s)));
+    }
+    return { X: X, P: P, W: Wt };
+  })();
+
+  function fromPolar(degs, r) {
+    return degs.map(function (d) { var a = d * Math.PI / 180; return [r * Math.cos(a), r * Math.sin(a)]; });
+  }
+  var STARTS = {
+    segments: function () { return fromPolar([540 / 7, 180 / 7, 2340 / 7], 0.6); },   // centers of S2, S1, S5
+    trap:     function () { return fromPolar([30, 150, 270], 0.6); },
+    small:    function () {
+      var rnd = mulberry32(12345), W = [];
+      for (var j = 0; j < M; j++) W.push([(rnd() - 0.5) * 0.02, (rnd() - 0.5) * 0.02]);
+      return W;
+    },
+    random:   function () {
+      var rnd = mulberry32(state.randSeed++ * 104729 + 7), W = [];
+      for (var j = 0; j < M; j++) {
+        var a = 2 * Math.PI * rnd(), r = 0.3 + 1.2 * rnd();
+        W.push([r * Math.cos(a), r * Math.sin(a)]);
+      }
+      return W;
+    }
+  };
+  function copyW(W) { return W.map(function (w) { return [w[0], w[1]]; }); }
+
+  // ---------- model ----------
+  var MAX_STEPS = 600;
+  var WARM = 200;
+
+  function Model(lossKey) { this.loss = lossKey; this.reset(); }
+  Model.prototype.reset = function () {
+    this.W = copyW(state.W0); this.m = []; this.v = [];
+    for (var j = 0; j < M; j++) { this.m.push([0, 0]); this.v.push([0, 0]); }
+    this.step = 0; this.t0 = 0; this.obj = NaN; this.force = []; this.hist = []; this.trail = [copyW(this.W)];
+    this.record();
+  };
+  Model.prototype.scores = function (x) {
+    var W = this.W;
+    return [W[0][0] * x[0] + W[0][1] * x[1], W[1][0] * x[0] + W[1][1] * x[1], W[2][0] * x[0] + W[2][1] * x[1]];
+  };
+  Model.prototype.warming = function () {
+    return state.warm && this.loss === 'trunc' && state.k > 1 && this.step < WARM;
+  };
+  Model.prototype.objective = function () {
+    var n = state.data.Y.length, G = [[0, 0], [0, 0], [0, 0]], L = 0;
+    var loss = LOSSES[this.warming() ? 'softmax' : this.loss].fn;
+    this.force = new Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = state.data.X[i], r = loss(this.scores(x), state.data.Y[i], state.k);
+      L += r.L;
+      this.force[i] = Math.sqrt(r.g[0] * r.g[0] + r.g[1] * r.g[1] + r.g[2] * r.g[2]);
+      for (var j = 0; j < M; j++) { G[j][0] += r.g[j] * x[0]; G[j][1] += r.g[j] * x[1]; }
+    }
+    var lam = state.lambda, reg = 0;
+    for (var j2 = 0; j2 < M; j2++) for (var c = 0; c < 2; c++) {
+      G[j2][c] = G[j2][c] / n + lam * this.W[j2][c];
+      reg += this.W[j2][c] * this.W[j2][c];
+    }
+    this.obj = L / n + lam / 2 * reg;
+    return G;
+  };
+  Model.prototype.adamStep = function () {
+    if (state.warm && this.loss === 'trunc' && state.k > 1 && this.step === WARM) {
+      // Switch from the softmax warm start to the truncated loss with a fresh optimizer.
+      this.t0 = WARM;
+      for (var j0 = 0; j0 < M; j0++) { this.m[j0] = [0, 0]; this.v[j0] = [0, 0]; }
+    }
+    var G = this.objective(), it = ++this.step - this.t0, lr = 0.05 / Math.sqrt(1 + it / 200);
+    var b1 = 0.9, b2 = 0.999;
+    for (var j = 0; j < M; j++) for (var c = 0; c < 2; c++) {
+      this.m[j][c] = b1 * this.m[j][c] + (1 - b1) * G[j][c];
+      this.v[j][c] = b2 * this.v[j][c] + (1 - b2) * G[j][c] * G[j][c];
+      var mh = this.m[j][c] / (1 - Math.pow(b1, it)), vh = this.v[j][c] / (1 - Math.pow(b2, it));
+      this.W[j][c] -= lr * mh / (Math.sqrt(vh) + 1e-8);
+    }
+    if (this.step % 10 === 0) this.trail.push(copyW(this.W));
+  };
+  Model.prototype.accuracy = function () {
+    var a1 = 0, a2 = 0, N = GRID.X.length;
+    for (var i = 0; i < N; i++) {
+      var r = rank(this.scores(GRID.X[i])), p = GRID.P[i], w = GRID.W[i];
+      a1 += w * p[r[0]]; a2 += w * (p[r[0]] + p[r[1]]);
+    }
+    return { 1: a1 / N, 2: a2 / N };
+  };
+  Model.prototype.record = function () {
+    if (this.step === 0) this.objective();
+    this.acc = this.accuracy();
+    this.hist.push([this.step, this.acc[1], this.acc[2]]);
+  };
+
+  // ---------- state & URL ----------
+  var PRESETS = {
+    fig4:   { A: 'softmax', B: 'trunc',   k: 2 },
+    convex: { A: 'topksvm', B: 'topkent', k: 2 },
+    top1:   { A: 'svm',     B: 'softmax', k: 1 }
+  };
+
+  var params = new URLSearchParams(location.search);
+  function num(key, def, lo, hi) {
+    var v = parseFloat(params.get(key));
+    return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def;
+  }
+  function lossParam(key, def) { var v = params.get(key); return Object.prototype.hasOwnProperty.call(LOSSES, v) ? v : def; }
+
+  var state = {
+    k: num('k', 2, 1, 2) | 0,
+    logLambda: num('lambda', -3, -5, 0),
+    n: Math.round(num('n', 200, 50, 1000) / 50) * 50,
+    seed: num('seed', 1, 1, 1e6) | 0,
+    speed: num('speed', 1, 1, 16) | 0,
+    warm: params.get('warm') !== '0',
+    playing: params.get('play') === '1',
+    start: STARTS[params.get('start')] ? params.get('start') : 'segments',
+    randSeed: 1,
+    hover: null,          // hovered angle on the circle, or null
+    pin: { sand: null, circ: null },   // clicked (pinned) angle per group of circles
+    one: { a: [num('x', 2.2, -4, 4), num('y', 1.2, -4, 4)] }
+  };
+  state.lambda = Math.pow(10, state.logLambda);
+  state.data = sample(state.n, state.seed);
+  state.W0 = STARTS[state.start]();
+  (function () {
+    var w = (params.get('w') || '').split(',').map(parseFloat);
+    if (w.length === 6 && w.every(isFinite)) { state.W0 = [[w[0], w[1]], [w[2], w[3]], [w[4], w[5]]]; state.start = 'custom'; }
+  })();
+
+  function makePanels(rootId) {
+    return Array.prototype.map.call(document.querySelectorAll('#' + rootId + ' .panel'), function (el) {
+      return {
+        id: el.getAttribute('data-id'), el: el,
+        lname: el.querySelector('.lname'),
+        canvas: el.querySelector('canvas'),
+        strip: el.querySelector('canvas.strip'),
+        stats: el.querySelector('.stats'),
+        note: el.querySelector('.note'),
+        push: el.querySelector('.push')
+      };
+    });
+  }
+  var landPanels = makePanels('land');
+  var circPanels = makePanels('circ');
+  circPanels[0].model = new Model(lossParam('a', 'softmax'));
+  circPanels[1].model = new Model(lossParam('b', 'trunc'));
+  function lossOf(i) { return circPanels[i].model.loss; }
+
+  var css = getComputedStyle(document.documentElement);
+  var CLS = ['--c0', '--c1', '--c2'].map(function (v) { return css.getPropertyValue(v).trim(); });
+  var PCOL = { A: css.getPropertyValue('--pa').trim(), B: css.getPropertyValue('--pb').trim() };
+  var MISS = css.getPropertyValue('--miss').trim();
+
+  // ---------- controls ----------
+  ['lossA', 'lossB'].forEach(function (id, i) {
+    var sel = $(id);
+    Object.keys(LOSSES).forEach(function (key) {
+      var o = document.createElement('option'); o.value = key; o.textContent = LOSSES[key].name; sel.appendChild(o);
+    });
+    sel.value = lossOf(i);
+    sel.addEventListener('change', function () {
+      circPanels[i].model.loss = sel.value; circPanels[i].model.reset(); lossesChanged();
+    });
+  });
+  $('k').value = String(state.k);
+  $('k').addEventListener('change', function () { state.k = +this.value; resetAll(); lossesChanged(); });
+  Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function (btn) {
+    btn.addEventListener('click', function () {
+      var pr = PRESETS[btn.getAttribute('data-preset')];
+      circPanels[0].model.loss = $('lossA').value = pr.A;
+      circPanels[1].model.loss = $('lossB').value = pr.B;
+      state.k = pr.k; $('k').value = String(pr.k);
+      resetAll(); lossesChanged();
+    });
+  });
+  function syncPresetButtons() {
+    Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function (btn) {
+      var pr = PRESETS[btn.getAttribute('data-preset')];
+      btn.setAttribute('aria-pressed', String(pr.A === lossOf(0) && pr.B === lossOf(1) && pr.k === state.k));
+    });
+  }
+  function lossesChanged() {
+    syncPresetButtons();
+    Array.prototype.forEach.call(document.querySelectorAll('.kval'), function (el) { el.textContent = state.k; });
+    restartOne(); writeURL(); drawAll();
+  }
+
+  $('lambda').value = String(state.logLambda);
+  $('n').value = String(state.n);
+  $('speed').value = String(state.speed);
+  $('warm').checked = state.warm;
+  $('start').value = state.start;
+
+  function resetAll() { circPanels.forEach(function (p) { p.model.reset(); }); }
+  function writeURL() {
+    var q = new URLSearchParams({ a: lossOf(0), b: lossOf(1), k: state.k, lambda: state.logLambda, n: state.n, seed: state.seed });
+    if (state.start === 'custom') q.set('w', [].concat.apply([], state.W0).map(function (v) { return v.toFixed(3); }).join(','));
+    else if (state.start !== 'segments') q.set('start', state.start);
+    if (!state.warm) q.set('warm', '0');
+    try { history.replaceState(null, '', '?' + q.toString()); } catch (e) { /* file:// in some browsers */ }
+  }
+  function settingsChanged() { resetAll(); writeURL(); drawAll(); }
+
+  $('lambda').addEventListener('input', function () {
+    state.logLambda = +this.value; state.lambda = Math.pow(10, state.logLambda); settingsChanged();
+  });
+  $('n').addEventListener('input', function () { state.n = +this.value; state.data = sample(state.n, state.seed); settingsChanged(); });
+  $('resample').addEventListener('click', function () { state.seed += 1; state.data = sample(state.n, state.seed); settingsChanged(); });
+  $('warm').addEventListener('change', function () { state.warm = this.checked; settingsChanged(); });
+  $('start').addEventListener('change', function () {
+    if (!STARTS[this.value]) return;
+    state.start = this.value; state.W0 = STARTS[this.value](); settingsChanged();
+  });
+  $('speed').addEventListener('change', function () { state.speed = +this.value; });
+  $('reset').addEventListener('click', function () {
+    if (state.start === 'random') state.W0 = STARTS.random();
+    resetAll(); drawAll();
+  });
+  $('play').addEventListener('click', function () {
+    if (circPanels.every(function (p) { return p.model.step >= MAX_STEPS; })) resetAll();
+    setPlaying(!state.playing);
+  });
+  function setPlaying(on) {
+    state.playing = on;
+    $('play').textContent = on ? 'Pause' : 'Play';
+    if (on) kick();
+  }
+  $('summarize').addEventListener('click', function () {
+    var results = circPanels.map(function (p) {
+      var m = p.model;
+      return 'Model ' + p.id + ', ' + lossName(m.loss, state.k) + ', step ' + m.step +
+        ': top-1 accuracy ' + (100 * m.acc[1]).toFixed(1) + ' percent; top-2 accuracy ' +
+        (100 * m.acc[2]).toFixed(1) + ' percent.';
+    });
+    $('results-summary').textContent = results.join(' ') +
+      ' Best possible: top-1 ' + (100 * BAYES[1]).toFixed(1) + ' percent; top-2 ' + (100 * BAYES[2]).toFixed(1) + ' percent.';
+  });
+
+  // ---------- drawing helpers ----------
+  function setupCanvas(cv) {
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx: ctx, w: w, h: h, dpr: dpr };
+  }
+  function ring(ctx, cx, cy, r0, r1, a0, a1, color) {
+    // Math angles (counter-clockwise); canvas y points down, so negate.
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1, -a0, -a1, true);
+    ctx.arc(cx, cy, r0, -a1, -a0, false);
+    ctx.closePath();
+    ctx.fillStyle = color; ctx.fill();
+  }
+  function arrow(ctx, x0, y0, x1, y1, color, width, head) {
+    var dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+    if (len < 0.5) return;
+    var ux = dx / len, uy = dy / len, hh = Math.min(head, len * 0.6);
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * hh * 0.8, y1 - uy * hh * 0.8); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - ux * hh - uy * hh * 0.5, y1 - uy * hh + ux * hh * 0.5);
+    ctx.lineTo(x1 - ux * hh + uy * hh * 0.5, y1 - uy * hh - ux * hh * 0.5);
+    ctx.closePath(); ctx.fill();
+  }
+  function label(ctx, text, x, y, align, color, font) {
+    ctx.font = font || '12px Lato, sans-serif'; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.strokeText(text, x, y);
+    ctx.fillStyle = color || '#444'; ctx.fillText(text, x, y);
+  }
+
+  // =====================================================================
+  // 1. One example: loss landscape over the two score gaps
+  // =====================================================================
+  var LIM = 4, ETA = 0.03, ONE_STEPS = 700, ONE_HOLD = 80;
+  var landCache = {};
+
+  function oneLoss(key, a) { return LOSSES[key].fn([0, a[0], a[1]], 0, state.k); }
+
+  function landGeom(c) {
+    var padL = 30, padB = 28, padT = 6, padR = 6;
+    var size = Math.min(c.w - padL - padR, c.h - padT - padB);
+    return {
+      x0: padL, y0: padT, s: size,
+      X: function (a) { return padL + (a + LIM) / (2 * LIM) * size; },
+      Y: function (b) { return padT + (LIM - b) / (2 * LIM) * size; },
+      inv: function (px, py) { return [(px - padL) / size * 2 * LIM - LIM, LIM - (py - padT) / size * 2 * LIM]; }
+    };
+  }
+
+  // Background: rank regions, zero-loss region, and contour lines, rendered once per loss and k.
+  function landImage(key, size, dpr) {
+    var n = Math.min(Math.round(size * Math.min(dpr, 2)), 640);
+    var id = key + '|' + state.k + '|' + n;
+    if (landCache[id]) return landCache[id];
+    var L = new Float32Array(n * n), i, j;
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) {
+      L[j * n + i] = oneLoss(key, [(i + 0.5) / n * 2 * LIM - LIM, LIM - (j + 0.5) / n * 2 * LIM]).L;
+    }
+    var cv = document.createElement('canvas'); cv.width = cv.height = n;
+    var ctx = cv.getContext('2d'), img = ctx.createImageData(n, n), D = img.data, STEP = 0.4;
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) {
+      var a = (i + 0.5) / n * 2 * LIM - LIM, b = LIM - (j + 0.5) / n * 2 * LIM;
+      var rk = 1 + (a > 0) + (b > 0), o = 4 * (j * n + i), v = L[j * n + i];
+      var r = 255, g = 255, bl = 255;
+      if (rk > state.k) { r = 251; g = 228; bl = 222; }
+      if (v <= 1e-9) { r = 224; g = 236; bl = 250; }
+      var li = Math.floor(v / STEP);
+      var edge = (i + 1 < n && Math.floor(L[j * n + i + 1] / STEP) !== li) ||
+                 (j + 1 < n && Math.floor(L[(j + 1) * n + i] / STEP) !== li);
+      if (edge && v > 1e-9) { r = Math.round(r * 0.55); g = Math.round(g * 0.55); bl = Math.round(bl * 0.55); }
+      D[o] = r; D[o + 1] = g; D[o + 2] = bl; D[o + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    landCache[id] = cv;
+    return cv;
+  }
+
+  function restartOne() {
+    state.one.runs = landPanels.map(function (p, i) {
+      return { key: lossOf(i), a: state.one.a.slice(), path: [state.one.a.slice()], step: 0, hold: 0 };
+    });
+    syncOneStarts();
+  }
+  function stepOne(run) {
+    if (run.step >= ONE_STEPS) { run.hold++; return; }
+    var r = oneLoss(run.key, run.a);
+    run.a = [run.a[0] - ETA * r.g[1], run.a[1] - ETA * r.g[2]];
+    run.step++;
+    if (Math.abs(run.a[0]) > LIM || Math.abs(run.a[1]) > LIM) { run.step = ONE_STEPS; }
+    if (run.step % 3 === 0 || run.step >= ONE_STEPS) run.path.push(run.a.slice());
+  }
+
+  function drawLand(p, i) {
+    var c = setupCanvas(p.canvas), ctx = c.ctx, G = landGeom(c), run = state.one.runs[i], key = run.key;
+    p.lname.textContent = lossName(key, state.k);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(landImage(key, G.s, c.dpr), G.x0, G.y0, G.s, G.s);
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.strokeRect(G.x0 + 0.5, G.y0 + 0.5, G.s - 1, G.s - 1);
+    ctx.strokeStyle = '#555'; ctx.beginPath();
+    ctx.moveTo(G.X(0), G.y0); ctx.lineTo(G.X(0), G.y0 + G.s); ctx.moveTo(G.x0, G.Y(0)); ctx.lineTo(G.x0 + G.s, G.Y(0)); ctx.stroke();
+
+    // Region labels.
+    var f = '12px Lato, sans-serif', q = LIM / 2;
+    label(ctx, 'orange 1st', G.X(-q), G.Y(-q - 0.6), 'center', '#8a5a00', f);
+    label(ctx, 'orange 2nd', G.X(-q), G.Y(q + 0.9), 'center', '#8a5a00', f);
+    label(ctx, 'orange 2nd', G.X(q), G.Y(-q - 0.6), 'center', '#8a5a00', f);
+    label(ctx, 'orange 3rd', G.X(q), G.Y(q + 0.9), 'center', '#8a5a00', f);
+    label(ctx, 'top-' + state.k + ' error', G.X(q), G.Y(q + 0.45), 'center', MISS, '11px Lato, sans-serif');
+    if (state.k === 1) {
+      label(ctx, 'top-1 error', G.X(-q), G.Y(q + 0.45), 'center', MISS, '11px Lato, sans-serif');
+      label(ctx, 'top-1 error', G.X(q), G.Y(-q - 0.15), 'center', MISS, '11px Lato, sans-serif');
+    }
+    if (key === 'svm' || key === 'topksvm') label(ctx, 'zero loss', G.X(-2.6), G.Y(-3.6), 'center', '#3b6fb0', '11px Lato, sans-serif');
+
+    // Axes.
+    ctx.font = '11px Lato, sans-serif'; ctx.fillStyle = '#666'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    [-4, -2, 0, 2, 4].forEach(function (t) { ctx.fillText(String(t), G.X(t), G.y0 + G.s + 2); });
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    [-4, -2, 0, 2, 4].forEach(function (t) { ctx.fillText(String(t), G.x0 - 4, G.Y(t)); });
+    ctx.font = '12px Lato, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    var by = c.h - 1, mx = G.x0 + G.s / 2;
+    ctx.fillStyle = CLS[1]; ctx.fillText('blue', mx - 52, by);
+    ctx.fillStyle = '#555'; ctx.fillText('score minus', mx, by);
+    ctx.fillStyle = CLS[0]; ctx.fillText('orange', mx + 54, by);
+    ctx.save(); ctx.translate(10, G.y0 + G.s / 2); ctx.rotate(-Math.PI / 2);
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = CLS[2]; ctx.fillText('green', -54, 0);
+    ctx.fillStyle = '#555'; ctx.fillText('score minus', 0, 0);
+    ctx.fillStyle = CLS[0]; ctx.fillText('orange', 56, 0);
+    ctx.restore();
+
+    // Path, start, current point, and the push at the current point.
+    var col = PCOL[p.id];
+    ctx.save(); ctx.beginPath(); ctx.rect(G.x0, G.y0, G.s, G.s); ctx.clip();
+    ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.beginPath();
+    run.path.forEach(function (pt, t) { if (t) ctx.lineTo(G.X(pt[0]), G.Y(pt[1])); else ctx.moveTo(G.X(pt[0]), G.Y(pt[1])); });
+    ctx.lineTo(G.X(run.a[0]), G.Y(run.a[1])); ctx.stroke();
+    var r = oneLoss(key, run.a), px = G.X(run.a[0]), py = G.Y(run.a[1]), sc = G.s / (2 * LIM) * 1.1;
+    arrow(ctx, px, py, px - sc * r.g[1], py + sc * r.g[2], '#d62728', 2, 8);
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(G.X(state.one.a[0]), G.Y(state.one.a[1]), 5, 0, 2 * Math.PI);
+    ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, 5.5, 0, 2 * Math.PI);
+    ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+
+    // Readout.
+    var rk = 1 + (run.a[0] > 0) + (run.a[1] > 0), ok = rk <= state.k;
+    p.stats.innerHTML = 'loss ' + r.L.toFixed(3) + ' &middot; <span class="o">orange</span> ranked ' +
+      ['1st', '2nd', '3rd'][rk - 1] + ' &middot; ' +
+      (ok ? 'top-' + state.k + ' correct' : '<span style="color:' + MISS + '">top-' + state.k + ' error</span>');
+    var pushes = [[1, 'blue', 'b'], [2, 'green', 'g']].map(function (e) {
+      var v = Math.max(0, r.g[e[0]]);
+      return '<span>push on <span class="' + e[2] + '">' + e[1] + '</span></span>' +
+        '<span><i style="width:' + (100 * Math.min(1, v)).toFixed(1) + '%;background:' + CLS[e[0]] + '"></i></span>' +
+        '<span>' + v.toFixed(2) + '</span>';
+    });
+    p.push.innerHTML = pushes.join('');
+  }
+
+  landPanels.forEach(function (p) {
+    var drag = false;
+    function at(e) {
+      var rect = p.canvas.getBoundingClientRect(), G = landGeom({ w: rect.width, h: rect.height });
+      var a = G.inv(e.clientX - rect.left, e.clientY - rect.top);
+      state.one.a = [Math.max(-LIM + 0.05, Math.min(LIM - 0.05, a[0])), Math.max(-LIM + 0.05, Math.min(LIM - 0.05, a[1]))];
+      restartOne(); kick();
+    }
+    p.canvas.addEventListener('pointerdown', function (e) { drag = true; p.canvas.setPointerCapture(e.pointerId); at(e); });
+    p.canvas.addEventListener('pointermove', function (e) { if (drag) at(e); });
+    p.canvas.addEventListener('pointerup', function () { drag = false; });
+    p.canvas.addEventListener('pointercancel', function () { drag = false; });
+  });
+
+  // Suggested starts, each with what to look for (written for the default softmax vs. truncated comparison).
+  var ONE_CAPTIONS = [
+    'Both rivals beat orange: a top-2 error. Softmax pushes mostly on blue, the bigger offender. Truncated top-2 ' +
+      'pushes only green, the weaker rival, because beating one of the two is enough to make the top 2.',
+    'Orange is already 2nd, so there is no top-2 error. Softmax still pushes blue down hard: it wants orange first. ' +
+      'Truncated top-2 leaves blue alone and only widens the gap over green.',
+    'Orange is already 1st. Softmax and the entropy losses keep pushing, more and more weakly, to widen the margin. ' +
+      'The SVM losses stop as soon as the margin reaches 1.'
+  ];
+  function syncOneStarts() {
+    var active = -1;
+    Array.prototype.forEach.call(document.querySelectorAll('#oneStarts button'), function (btn, i) {
+      var on = Math.abs(+btn.getAttribute('data-x') - state.one.a[0]) < 1e-9 && Math.abs(+btn.getAttribute('data-y') - state.one.a[1]) < 1e-9;
+      btn.setAttribute('aria-pressed', String(on));
+      if (on) active = i;
+    });
+    $('oneCaption').textContent = active >= 0 ? '(' + ONE_CAPTIONS[active] + ')' : '(Your own start. Compare the two push bars.)';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#oneStarts button'), function (btn) {
+    btn.addEventListener('click', function () {
+      state.one.a = [+btn.getAttribute('data-x'), +btn.getAttribute('data-y')];
+      restartOne(); kick();
+    });
+  });
+
+  // =====================================================================
+  // 2. The circle: weight arrows, rings, unrolled strip
+  // =====================================================================
+  var drag = null;   // {panel, j, scale} while dragging an arrow tip
+
+  function circleGeom(c) {
+    var S = Math.min(c.w, c.h);
+    return { cx: c.w / 2, cy: c.h / 2, R: 0.335 * S, S: S };
+  }
+  function weightScale(p, R) {
+    if (drag && drag.panel.group === p.group) return drag.scale;
+    var mx = 0;
+    p.model.W.forEach(function (w) { mx = Math.max(mx, Math.hypot(w[0], w[1])); });
+    return 0.8 * R / Math.max(0.25, mx);
+  }
+  function topkMass(sc, pr, k) { var r = rank(sc), s = 0; for (var j = 0; j < k; j++) s += pr[r[j]]; return s; }
+  // Group consecutive equal values so translucent bands are drawn as one shape each.
+  function runs(vals) {
+    var out = [], i0 = 0;
+    for (var i = 1; i <= vals.length; i++) {
+      if (i === vals.length || Math.abs(vals[i] - vals[i0]) > 1e-6) { out.push({ i0: i0, i1: i, v: vals[i0] }); i0 = i; }
+    }
+    return out;
+  }
+
+  var RING = { t0: 1.03, t1: 1.19 };
+
+  var LAYERS = [
+    { key: 'labels', name: 'True labels' },
+    { key: 'g1', name: '1st guess' },
+    { key: 'g2', name: '2nd guess' },
+    { key: 'miss', name: 'Missed by top <span class="kval">2</span>' },
+    { key: 'points', name: 'Training points' }
+  ];
+  // Layers are chosen separately for the sandbox and for the trained models.
+  state.layers = {
+    sand: { labels: true, g1: false, g2: true, miss: false, points: false },
+    circ: { labels: true, g1: false, g2: true, miss: true, points: false }
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('.layers'), function (box) {
+    var layers = state.layers[box.closest('#sand') ? 'sand' : 'circ'];
+    LAYERS.forEach(function (L) {
+      var lab = document.createElement('label');
+      lab.innerHTML = '<input type="checkbox" data-layer="' + L.key + '"' + (layers[L.key] ? ' checked' : '') +
+        '><i class="sw sw-' + L.key + '"></i><span>' + L.name + '</span>';
+      lab.querySelector('input').addEventListener('change', function () { layers[L.key] = this.checked; drawAll(); });
+      box.appendChild(lab);
+    });
+  });
+
+  // Diagonal stripes in one class color, drawn at device resolution.
+  function stripes(ctx, color, dpr) {
+    var n = Math.round(7 * dpr), c = document.createElement('canvas'), g = c.getContext('2d');
+    c.width = c.height = n;
+    g.strokeStyle = color; g.lineWidth = 1.3 * dpr; g.beginPath();
+    for (var o = -n; o <= n; o += n) { g.moveTo(o - 1, n + 1); g.lineTo(o + n + 1, -1); }
+    g.stroke();
+    var pat = ctx.createPattern(c, 'repeat');
+    if (pat.setTransform && window.DOMMatrix) pat.setTransform(new DOMMatrix().scale(1 / dpr));
+    return pat;
+  }
+
+  // Angle currently inspected in a group of circles: a pinned direction wins over hover.
+  function inspected(group) {
+    if (state.pin[group] !== null) return state.pin[group];
+    return state.hoverOwner === group ? state.hover : null;
+  }
+
+  // Which classes the model ranks in its top k, per angular step: a bit mask, so equal runs can be merged.
+  function topkMasks(model, steps, k) {
+    var out = [];
+    for (var i = 0; i < steps; i++) {
+      var ang = 2 * Math.PI * (i + 0.5) / steps, rk = rank(model.scores([Math.cos(ang), Math.sin(ang)])), m = 0;
+      for (var j = 0; j < k; j++) m |= 1 << rk[j];
+      out.push(segOfAngle(ang) * 8 + m);
+    }
+    return out;
+  }
+
+  // The true labels of each direction, with the share the model's top k misses faded out.
+  function drawTruthRing(ctx, cx, cy, R, model, k) {
+    var STEPS = 720, da = 2 * Math.PI / STEPS;
+    var vals = model ? topkMasks(model, STEPS, k) : null;
+    var groups = model ? runs(vals) : [0, 1, 2, 3, 4].map(function (s) {
+      return { i0: SEG[s] / 7 * STEPS, i1: SEG[s + 1] / 7 * STEPS, v: s * 8 + 7 };
+    });
+    groups.forEach(function (g) {
+      var s = Math.floor(g.v / 8), mask = g.v % 8, r = RING.t0 * R, missed = 0;
+      for (var j = 0; j < M; j++) {
+        var dr = PY[j][s] * (RING.t1 - RING.t0) * R;
+        if (dr <= 0) continue;
+        var hit = mask & (1 << j);
+        if (!hit) missed += PY[j][s];
+        ctx.globalAlpha = hit ? 1 : 0.18;
+        ring(ctx, cx, cy, r, r + dr, g.i0 * da, g.i1 * da, CLS[j]);
+        r += dr;
+      }
+      ctx.globalAlpha = 1;
+      if (missed > 1e-6) ring(ctx, cx, cy, RING.t1 * R, RING.t1 * R + 2.5, g.i0 * da, g.i1 * da, MISS);
+    });
+    for (var s = 0; s < 5; s++) {
+      var bd = 2 * Math.PI * SEG[s] / 7;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(cx + RING.t0 * R * Math.cos(bd), cy - RING.t0 * R * Math.sin(bd));
+      ctx.lineTo(cx + (RING.t1 * R + 3) * Math.cos(bd), cy - (RING.t1 * R + 3) * Math.sin(bd)); ctx.stroke();
+    }
+  }
+
+  // Training points scattered radially inside the circle; size can encode how hard each one pulls.
+  var JITTER = [];
+  function drawPoints(ctx, cx, cy, R, force) {
+    var n = state.data.Y.length, i, maxF = 0;
+    if (JITTER.length !== n) { var rnd = mulberry32(99); JITTER = []; for (i = 0; i < n; i++) JITTER.push(rnd()); }
+    if (force) for (i = 0; i < n; i++) maxF = Math.max(maxF, force[i] || 0);
+    for (i = 0; i < n; i++) {
+      var th = state.data.TH[i], r = R * (0.62 + 0.32 * JITTER[i]);
+      var rad = force ? 0.9 + 2.3 * Math.sqrt((force[i] || 0) / Math.max(maxF, 1e-9)) : 2.6;
+      ctx.beginPath(); ctx.arc(cx + r * Math.cos(th), cy - r * Math.sin(th), rad, 0, 2 * Math.PI);
+      ctx.fillStyle = CLS[state.data.Y[i]]; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawCircle(p) {
+    var c = setupCanvas(p.canvas), ctx = c.ctx, G = circleGeom(c), cx = G.cx, cy = G.cy, R = G.R;
+    var model = p.model, k = state.k, i, j, s;
+    if (p.lname) p.lname.textContent = lossName(model.loss, k);
+    var sc = weightScale(p, R);
+    p.scale = sc;
+
+    var LY = state.layers[p.group], h = inspected(p.group);
+    ctx.fillStyle = '#fcfcfc'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.fill();
+
+    // First guess as a light shading, second guess as stripes, merged into runs of equal ranking.
+    if (LY.g1 || LY.g2) {
+      var NW = 720, dw = 2 * Math.PI / NW, codes = [];
+      for (i = 0; i < NW; i++) {
+        var aw = (i + 0.5) * dw, fw = model.scores([Math.cos(aw), Math.sin(aw)]), rw = rank(fw);
+        codes.push(Math.abs(fw[rw[0]] - fw[rw[2]]) < 1e-9 ? -1 : rw[0] * 3 + rw[1]);
+      }
+      var pats = CLS.map(function (col) { return stripes(ctx, col, c.dpr); });
+      runs(codes).forEach(function (g) {
+        if (g.v < 0) return;
+        var w0 = g.i0 * dw, w1 = g.i1 * dw;
+        if (LY.g1) { ctx.globalAlpha = 0.2; ring(ctx, cx, cy, 0, R, w0, w1, CLS[Math.floor(g.v / 3)]); }
+        if (LY.g2) { ctx.globalAlpha = k >= 2 ? 0.6 : 0.25; ring(ctx, cx, cy, 0, R, w0, w1, pats[g.v % 3]); }
+        ctx.globalAlpha = 1;
+      });
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.stroke();
+    for (s = 0; s < 5; s++) {
+      var bd = 2 * Math.PI * SEG[s] / 7, mid = Math.PI * (SEG[s] + SEG[s + 1]) / 7;
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath();
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.cos(bd), cy - R * Math.sin(bd)); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx, 'S' + (s + 1), cx + 1.33 * R * Math.cos(mid), cy - 1.33 * R * Math.sin(mid), 'center', '#666', '12px Lato, sans-serif');
+    }
+    if (LY.labels) drawTruthRing(ctx, cx, cy, R, LY.miss ? model : null, k);
+    else if (LY.miss) {
+      runs(topkMasks(model, 720, k)).forEach(function (g) {
+        var sg = Math.floor(g.v / 8), mask = g.v % 8, miss = false;
+        for (var jj = 0; jj < M; jj++) if (PY[jj][sg] > 0 && !(mask & (1 << jj))) miss = true;
+        if (miss) ring(ctx, cx, cy, RING.t1 * R, RING.t1 * R + 2.5, g.i0 * 2 * Math.PI / 720, g.i1 * 2 * Math.PI / 720, MISS);
+      });
+    }
+    if (LY.points) drawPoints(ctx, cx, cy, R, p.group === 'sand' ? null : model.force);
+
+    // Trails of the arrow tips.
+    for (j = 0; j < M; j++) {
+      ctx.strokeStyle = CLS[j]; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.5; ctx.beginPath();
+      model.trail.forEach(function (W, t) {
+        var X = cx + sc * W[j][0], Y = cy - sc * W[j][1];
+        if (t) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
+      });
+      ctx.lineTo(cx + sc * model.W[j][0], cy - sc * model.W[j][1]); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Inspected direction: each arrow's shadow on it; dots and rank numbers are drawn over the arrows below.
+    var shadows = [];
+    if (h !== null) {
+      var ux = Math.cos(h), uy = Math.sin(h), pinned = state.pin[p.group] !== null, rh = rank(model.scores([ux, uy]));
+      ctx.strokeStyle = '#333'; ctx.lineWidth = pinned ? 1.5 : 1; ctx.setLineDash(pinned ? [] : [4, 3]); ctx.beginPath();
+      ctx.moveTo(cx - R * ux, cy + R * uy); ctx.lineTo(cx + R * ux, cy - R * uy); ctx.stroke(); ctx.setLineDash([]);
+      var mx = cx + R * ux, my = cy - R * uy, ph = pAt(segOfAngle(h));
+      if (ph[rh[0]] + ph[rh[1]] < 0.999) {
+        ctx.beginPath(); ctx.arc(mx, my, 7, 0, 2 * Math.PI); ctx.fillStyle = '#d7191c'; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.moveTo(mx - 2.8, my - 2.8); ctx.lineTo(mx + 2.8, my + 2.8); ctx.moveTo(mx + 2.8, my - 2.8); ctx.lineTo(mx - 2.8, my + 2.8); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(mx, my, 5.5, 0, 2 * Math.PI); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(mx, my, 2, 0, 2 * Math.PI); ctx.fillStyle = '#333'; ctx.fill();
+      }
+      rh.forEach(function (jj, r) {
+        var w = model.W[jj], d = w[0] * ux + w[1] * uy, fx = cx + sc * d * ux, fy = cy - sc * d * uy, side = r === 1 ? -1 : 1;
+        ctx.strokeStyle = CLS[jj]; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.beginPath();
+        ctx.moveTo(cx + sc * w[0], cy - sc * w[1]); ctx.lineTo(fx, fy); ctx.stroke(); ctx.setLineDash([]);
+        shadows.push({ j: jj, r: r, x: fx, y: fy, bx: fx - side * uy * 13, by: fy - side * ux * 13 });
+      });
+    }
+
+    for (j = 0; j < M; j++) {
+      var tx2 = cx + sc * model.W[j][0], ty2 = cy - sc * model.W[j][1];
+      ctx.globalAlpha = 0.9; arrow(ctx, cx, cy, tx2, ty2, '#fff', 6, 12); ctx.globalAlpha = 1;
+      arrow(ctx, cx, cy, tx2, ty2, CLS[j], 3, 11);
+    }
+    var canDrag = p.group === 'sand' || !state.playing;
+    for (j = 0; j < M; j++) {
+      var hx = cx + sc * model.W[j][0], hy = cy - sc * model.W[j][1];
+      if (canDrag) {
+        ctx.beginPath(); ctx.arc(hx, hy, drag && drag.panel === p && drag.j === j ? 8 : 6, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = CLS[j]; ctx.lineWidth = 2.5; ctx.stroke();
+      }
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 2 * Math.PI); ctx.fillStyle = '#333'; ctx.fill();
+    shadows.forEach(function (sh) {
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, 4, 0, 2 * Math.PI); ctx.fillStyle = CLS[sh.j]; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(sh.bx, sh.by, 7, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      ctx.font = 'bold 10px Lato, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.fillText(String(sh.r + 1), sh.bx, sh.by + 0.5);
+    });
+
+    var acc = model.acc;
+    if (p.group === 'sand') {
+      p.stats.innerHTML = 'top-1 ' + (100 * acc[1]).toFixed(1) + '% &middot; <b>top-2 ' + (100 * acc[2]).toFixed(1) +
+        '%</b> <span class="cue">(best possible: ' + (100 * BAYES[1]).toFixed(1) + '% and ' + (100 * BAYES[2]).toFixed(1) + '%)</span>';
+      return;
+    }
+    p.stats.innerHTML =
+      'step ' + model.step + ' &middot; objective ' + (isFinite(model.obj) ? model.obj.toFixed(3) : '&ndash;') + '<br>' +
+      '<span class="' + (k === 1 ? 'big' : '') + '">top-1 ' + (100 * acc[1]).toFixed(1) + '%</span> &middot; ' +
+      '<span class="' + (k === 2 ? 'big' : '') + '">top-2 ' + (100 * acc[2]).toFixed(1) + '%</span>';
+    var L = LOSSES[model.loss];
+    p.note.textContent = model.warming() ? 'Steps 0\u2013' + WARM + ': softmax warm start, as in our paper.'
+      : (state.warm && model.loss === 'trunc' && k > 1) ? 'Started from the softmax solution at step ' + WARM + '.'
+      : L.usesK && k === 1 ? 'With k = 1 this is the same as ' + (model.loss === 'topksvm' ? 'the multiclass SVM.' : 'softmax.')
+      : (!L.usesK && k === 2 ? 'This loss ignores k; it always aims at top-1.' : '');
+  }
+
+  function stripGeom(c) {
+    var gx = 84, w = c.w - gx - 6;
+    return {
+      gx: gx, w: w,
+      X: function (th) { return gx + w * th / (2 * Math.PI); },
+      inv: function (px) { return Math.max(0, Math.min(2 * Math.PI - 1e-6, (px - gx) / w * 2 * Math.PI)); },
+      rows: { seg: [0, 12], truth: [14, 32], pts: [37, 61], score: [65, 145], g1: [149, 158], g2: [161, 170] }
+    };
+  }
+
+  function drawStrip(p) {
+    var c = setupCanvas(p.strip), ctx = c.ctx, G = stripGeom(c), R = G.rows, model = p.model, k = state.k, i, j, s;
+    var lf = '11px Lato, sans-serif';
+    function rowLabel(t, row, color) { label(ctx, t, G.gx - 6, (row[0] + row[1]) / 2, 'right', color || '#666', lf); }
+
+    for (s = 0; s < 5; s++) {
+      var sx0 = G.X(2 * Math.PI * SEG[s] / 7), sx1 = G.X(2 * Math.PI * SEG[s + 1] / 7);
+      ctx.font = lf; ctx.fillStyle = '#777'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('S' + (s + 1), (sx0 + sx1) / 2, (R.seg[0] + R.seg[1]) / 2);
+    }
+    // True labels, with the share the model's top k misses faded out (as on the circle).
+    var NT = 720;
+    runs(topkMasks(model, NT, k)).forEach(function (g) {
+      var sg = Math.floor(g.v / 8), mask = g.v % 8, y = R.truth[0], missed = false;
+      var x0 = G.gx + G.w * g.i0 / NT, x1 = G.gx + G.w * g.i1 / NT;
+      for (j = 0; j < M; j++) {
+        var hgt = PY[j][sg] * (R.truth[1] - R.truth[0]);
+        if (hgt <= 0) continue;
+        var hit = mask & (1 << j);
+        if (!hit) missed = true;
+        ctx.globalAlpha = hit ? 1 : 0.18; ctx.fillStyle = CLS[j]; ctx.fillRect(x0, y, x1 - x0, hgt);
+        y += hgt;
+      }
+      ctx.globalAlpha = 1;
+      if (missed) { ctx.fillStyle = MISS; ctx.fillRect(x0, R.truth[1] + 1, x1 - x0, 2.5); }
+    });
+    rowLabel('true labels', R.truth);
+
+    // Training points, one row per class; size = how hard the example pulls on the model.
+    var maxF = 0, n = state.data.Y.length;
+    for (i = 0; i < n; i++) maxF = Math.max(maxF, model.force[i] || 0);
+    var rh = (R.pts[1] - R.pts[0]) / 3;
+    for (i = 0; i < n; i++) {
+      var yy = state.data.Y[i], fr = model.force.length ? model.force[i] / Math.max(maxF, 1e-9) : 1;
+      ctx.beginPath();
+      ctx.arc(G.X(state.data.TH[i]), R.pts[0] + rh * (yy + 0.5), 0.8 + 3.2 * Math.sqrt(fr), 0, 2 * Math.PI);
+      ctx.fillStyle = CLS[yy]; ctx.globalAlpha = 0.8; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    rowLabel('training points', R.pts);
+
+    // Scores: one cosine per class.
+    var NS = Math.max(120, Math.round(G.w)), mxs = 1e-6, curves = [[], [], []], ranks = [];
+    for (i = 0; i <= NS; i++) {
+      var th = 2 * Math.PI * i / NS, f = model.scores([Math.cos(th), Math.sin(th)]);
+      for (j = 0; j < M; j++) { curves[j].push(f[j]); mxs = Math.max(mxs, Math.abs(f[j])); }
+      ranks.push(rank(f));
+    }
+    var sy0 = R.score[0], sy1 = R.score[1], smid = (sy0 + sy1) / 2, sh = (sy1 - sy0) / 2 - 3;
+    ctx.fillStyle = '#fafafa'; ctx.fillRect(G.gx, sy0, G.w, sy1 - sy0);
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(G.gx, smid); ctx.lineTo(G.gx + G.w, smid); ctx.stroke();
+    for (j = 0; j < M; j++) {
+      ctx.strokeStyle = CLS[j]; ctx.lineWidth = 2; ctx.beginPath();
+      for (i = 0; i <= NS; i++) {
+        var px = G.gx + G.w * i / NS, py = smid - sh * curves[j][i] / mxs;
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    }
+    rowLabel('scores', R.score);
+
+    // Guesses.
+    for (i = 0; i < NS; i++) {
+      var xa = G.gx + G.w * i / NS, xb = G.gx + G.w * (i + 1) / NS + 0.5, rk = ranks[i];
+      ctx.fillStyle = CLS[rk[0]]; ctx.fillRect(xa, R.g1[0], xb - xa, R.g1[1] - R.g1[0]);
+      ctx.globalAlpha = k >= 2 ? 1 : 0.25;
+      ctx.fillStyle = CLS[rk[1]]; ctx.fillRect(xa, R.g2[0], xb - xa, R.g2[1] - R.g2[0]);
+      ctx.globalAlpha = 1;
+    }
+    rowLabel('1st guess', R.g1); rowLabel('2nd guess', R.g2);
+
+    // Segment boundaries and hover cursor.
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1;
+    for (s = 1; s < 5; s++) {
+      var bx = Math.round(G.X(2 * Math.PI * SEG[s] / 7)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(bx, R.truth[0]); ctx.lineTo(bx, R.g2[1]); ctx.stroke();
+    }
+    var hc = inspected('circ');
+    if (hc !== null) {
+      var hx = Math.round(G.X(hc)) + 0.5;
+      ctx.strokeStyle = '#333'; ctx.setLineDash(state.pin.circ !== null ? [] : [4, 3]); ctx.beginPath(); ctx.moveTo(hx, R.truth[0]); ctx.lineTo(hx, R.g2[1]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // The data alone: training points on the circle and the label mix of each segment.
+  function drawData() {
+    var cv = $('data'); if (!cv) return;
+    var c = setupCanvas(cv), ctx = c.ctx, cx = c.w / 2, cy = c.h / 2, R = 0.33 * Math.min(c.w, c.h), i, s;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.98, 0, 2 * Math.PI); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.stroke();
+    drawPoints(ctx, cx, cy, R, null);
+    drawTruthRing(ctx, cx, cy, R, null, state.k);
+    for (s = 0; s < 5; s++) {
+      var bd = 2 * Math.PI * SEG[s] / 7, mid = Math.PI * (SEG[s] + SEG[s + 1]) / 7;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(cx + RING.t0 * R * Math.cos(bd), cy - RING.t0 * R * Math.sin(bd));
+      ctx.lineTo(cx + RING.t1 * R * Math.cos(bd), cy - RING.t1 * R * Math.sin(bd)); ctx.stroke();
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath();
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.cos(bd), cy - R * Math.sin(bd)); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx, 'S' + (s + 1), cx + 1.32 * R * Math.cos(mid), cy - 1.32 * R * Math.sin(mid), 'center', '#555', '13px Lato, sans-serif');
+    }
+    label(ctx, 'training points', cx, cy - 0.25 * R, 'center', '#666', '12px Lato, sans-serif');
+    label(ctx, '(color = label)', cx, cy - 0.25 * R + 15, 'center', '#888', '11px Lato, sans-serif');
+    label(ctx, 'label mix', cx + 1.30 * R * Math.cos(-0.75), cy - 1.30 * R * Math.sin(-0.75) + 14, 'center', '#666', '12px Lato, sans-serif');
+  }
+
+  // Readout for one direction: every class's score, its rank, and how much of the true labels each top k covers.
+  function describe(th, panels, owner) {
+    var s = segOfAngle(th), pr = pAt(s), x = [Math.cos(th), Math.sin(th)], k = state.k;
+    var span = function (j) { return '<span class="' + 'obg'[j] + '">' + CNAME[j] + '</span>'; };
+    var pct = function (v) { return Math.round(100 * v) + '%'; };
+    var truth = [0, 1, 2].filter(function (j) { return pr[j] > 0; })
+      .sort(function (p, q) { return pr[q] - pr[p]; })
+      .map(function (j) { return pct(pr[j]) + ' ' + span(j); }).join(', ');
+    var pinned = state.pin[owner] !== null;
+    var head = '<b>' + Math.round(th * 180 / Math.PI) + '&deg;, segment S' + (s + 1) + '.</b> True labels: ' + truth + '. ' +
+      '<span class="cue">' + (pinned ? 'Pinned; click the same spot again to release.' : 'Click to pin this direction.') + '</span>';
+    var tables = panels.map(function (p) {
+      var f = p.model.scores(x), rk = rank(f), cum = 0;
+      var chips = [1, 2].map(function (kk) {
+        var got = 0;
+        for (var r = 0; r < kk; r++) got += pr[rk[r]];
+        var cls = got > 0.999 ? 'ok' : got < 0.001 ? 'bad' : 'part';
+        var txt = cls === 'ok' ? '&#10003; correct' : cls === 'bad' ? '&#10007; wrong' : '&#9680; ' + pct(got) + ' correct';
+        return '<span class="chip ' + cls + '">top-' + kk + ' ' + txt + '</span>';
+      }).join('');
+      var cap = '<caption>' + (owner === 'sand' ? '' : '<span class="' + p.id + '">' + p.id + '</span> ' + lossName(p.model.loss, k) + '<br>') +
+        chips + '</caption>';
+      var rows = rk.map(function (j, r) {
+        cum += pr[j];
+        return '<tr' + (r === k - 1 ? ' class="cut"' : '') + '><td>' + (r + 1) + '</td><td>' + span(j) + '</td><td>' +
+          f[j].toFixed(2) + '</td><td>' + pct(pr[j]) + '</td><td>' + (r < k ? '<b>' + pct(cum) + '</b>' : pct(cum)) + '</td></tr>';
+      }).join('');
+      return '<table class="rank">' + cap + '<thead><tr><th>rank</th><th>class</th><th>score</th><th>labels</th><th>top-<i>r</i> gets</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    });
+    return head + '<div class="insp">' + tables.join('') + '</div>';
+  }
+
+  function angleAt(cx, cy, x, y) {
+    var dx = x - cx, dy = cy - y;
+    return Math.hypot(dx, dy) > 6 ? (Math.atan2(dy, dx) + 2 * Math.PI) % (2 * Math.PI) : null;
+  }
+  // Clicking pins a direction; clicking near the pinned one (or the center) releases it.
+  function togglePin(group, th) {
+    var cur = state.pin[group];
+    if (th === null) state.pin[group] = null;
+    else if (cur !== null && Math.abs(((th - cur + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) < 0.08) state.pin[group] = null;
+    else state.pin[group] = th;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && (state.pin.sand !== null || state.pin.circ !== null)) { state.pin = { sand: null, circ: null }; drawAll(); }
+  });
+
+  // Pointer handling for a circle panel: drag arrow tips, hover or click to inspect a direction.
+  function attachCircle(p, onGrab, onMove) {
+    var press = null;
+    function local(e) {
+      var rect = p.canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top, c: { w: rect.width, h: rect.height } };
+    }
+    function nearestTip(q) {
+      var G = circleGeom(q.c), best = -1, bd = 18;
+      p.model.W.forEach(function (w, j) {
+        var d = Math.hypot(q.x - (G.cx + p.scale * w[0]), q.y - (G.cy - p.scale * w[1]));
+        if (d < bd) { bd = d; best = j; }
+      });
+      return best;
+    }
+    function angleOf(q) { var G = circleGeom(q.c); return angleAt(G.cx, G.cy, q.x, q.y); }
+    function hoverAt(q) { state.hover = angleOf(q); state.hoverOwner = p.group; }
+    var draggable = function () { return p.group === 'sand' || !state.playing; };
+    p.canvas.addEventListener('pointerdown', function (e) {
+      var q = local(e), j = draggable() ? nearestTip(q) : -1;
+      if (j < 0) { press = q; hoverAt(q); drawAll(); return; }
+      onGrab();
+      drag = { panel: p, j: j, scale: p.scale };
+      p.canvas.setPointerCapture(e.pointerId);
+      drawAll();
+    });
+    p.canvas.addEventListener('pointermove', function (e) {
+      var q = local(e), G = circleGeom(q.c);
+      if (drag && drag.panel === p) onMove(drag.j, [(q.x - G.cx) / drag.scale, (G.cy - q.y) / drag.scale]);
+      hoverAt(q);
+      p.canvas.style.cursor = drag ? 'grabbing' : (draggable() && nearestTip(q) >= 0 ? 'grab' : 'pointer');
+      drawAll();
+    });
+    p.canvas.addEventListener('pointerup', function (e) {
+      if (press && !drag) {
+        var q = local(e);
+        if (Math.hypot(q.x - press.x, q.y - press.y) < 6) togglePin(p.group, angleOf(q));
+      }
+      press = null;
+      if (drag) { drag = null; writeURL(); }
+      drawAll();
+    });
+    p.canvas.addEventListener('pointercancel', function () { press = null; drag = null; drawAll(); });
+    p.canvas.addEventListener('pointerleave', function () { if (!drag) { state.hover = null; drawAll(); } });
+  }
+
+  circPanels.forEach(function (p) {
+    p.group = 'circ';
+    attachCircle(p, function () {
+      setPlaying(false);
+      state.W0 = copyW(p.model.W); state.start = 'custom'; $('start').value = 'custom';
+      resetAll();
+    }, function (j, w) { state.W0[j] = w; resetAll(); });
+    p.strip.addEventListener('pointermove', function (e) {
+      var rect = p.strip.getBoundingClientRect(), G = stripGeom({ w: rect.width, h: rect.height });
+      state.hover = G.inv(e.clientX - rect.left); state.hoverOwner = 'circ'; drawAll();
+    });
+    p.strip.addEventListener('pointerleave', function () { state.hover = null; drawAll(); });
+    p.strip.addEventListener('click', function (e) {
+      var rect = p.strip.getBoundingClientRect(), G = stripGeom({ w: rect.width, h: rect.height });
+      togglePin('circ', G.inv(e.clientX - rect.left)); drawAll();
+    });
+  });
+
+  var sand = {
+    id: 'S', group: 'sand', el: $('sand'),
+    canvas: $('sand').querySelector('canvas'), stats: $('sand').querySelector('.stats'),
+    model: new Model('softmax')
+  };
+  function resetSand() { sand.model.W = STARTS.segments(); sand.model.trail = []; sand.model.acc = sand.model.accuracy(); }
+  resetSand();
+  attachCircle(sand, function () {}, function (j, w) { sand.model.W[j] = w; sand.model.acc = sand.model.accuracy(); });
+  $('sandReset').addEventListener('click', function () { resetSand(); drawAll(); });
+
+  function drawChart() {
+    var cv = $('chart'), c = setupCanvas(cv), ctx = c.ctx;
+    var padL = 40, padR = 12, padT = 8, padB = 22, W = c.w - padL - padR, H = c.h - padT - padB;
+    var y0 = 0.2, y1 = 1.0;
+    function X(s) { return padL + W * s / MAX_STEPS; }
+    function Y(a) { return padT + H * (1 - (a - y0) / (y1 - y0)); }
+    ctx.font = '12px Lato, sans-serif'; ctx.fillStyle = '#555'; ctx.strokeStyle = '#e5e5e5'; ctx.lineWidth = 1;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    for (var g = 0.2; g <= 1.0001; g += 0.2) {
+      ctx.beginPath(); ctx.moveTo(padL, Y(g)); ctx.lineTo(padL + W, Y(g)); ctx.stroke();
+      ctx.fillText(Math.round(g * 100) + '%', padL - 6, Y(g) + 4);
+    }
+    ctx.textAlign = 'center';
+    for (var s = 0; s <= MAX_STEPS; s += 100) ctx.fillText(String(s), X(s), c.h - 5);
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = '#999';
+    [1, 2].forEach(function (kk) { ctx.beginPath(); ctx.moveTo(padL, Y(BAYES[kk])); ctx.lineTo(padL + W, Y(BAYES[kk])); ctx.stroke(); });
+    ctx.setLineDash([]);
+    circPanels.forEach(function (p) {
+      [[2, []], [1, [2, 3]]].forEach(function (spec) {
+        var h = p.model.hist; if (h.length < 1) return;
+        ctx.beginPath(); ctx.setLineDash(spec[1]);
+        ctx.strokeStyle = PCOL[p.id]; ctx.lineWidth = spec[0] === 2 ? 2 : 1.5;
+        for (var i = 0; i < h.length; i++) {
+          var px = X(h[i][0]), py = Y(Math.max(y0, h[i][spec[0]]));
+          if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      });
+    });
+  }
+
+  function drawAll() {
+    $('lambdaVal').textContent = state.lambda.toExponential(1);
+    $('nVal').textContent = String(state.n);
+    landPanels.forEach(drawLand);
+    drawData();
+    drawCircle(sand);
+    var hs = inspected('sand'), hc = inspected('circ');
+    $('sandReadout').innerHTML = hs !== null ? describe(hs, [sand], 'sand')
+      : '<span class="cue">Hover over the circle to inspect a direction; click to pin it.</span>';
+    circPanels.forEach(function (p) { drawCircle(p); drawStrip(p); });
+    $('readout').innerHTML = hc !== null ? describe(hc, circPanels, 'circ')
+      : '<span class="cue">Hover over a circle or strip to compare the two models in one direction; click to pin it.</span>';
+    drawChart();
+  }
+
+  // ---------- loop ----------
+  var ticking = false, oneVisible = true;
+  function kick() { if (!ticking) { ticking = true; requestAnimationFrame(tick); } }
+  function tick() {
+    var busy = false;
+    if (oneVisible) {
+      state.one.runs.forEach(function (run) {
+        for (var s = 0; s < 4; s++) stepOne(run);
+        if (run.hold > ONE_HOLD && !REDUCED) { run.a = state.one.a.slice(); run.path = [run.a.slice()]; run.step = 0; run.hold = 0; }
+        if (run.step < ONE_STEPS || !REDUCED) busy = true;
+      });
+    }
+    if (state.playing) {
+      var running = false;
+      circPanels.forEach(function (p) {
+        var m = p.model;
+        for (var s = 0; s < state.speed && m.step < MAX_STEPS; s++) {
+          m.adamStep();
+          if (m.step % 10 === 0 || m.step === MAX_STEPS) m.record();
+        }
+        if (m.step < MAX_STEPS) running = true;
+      });
+      if (!running) setPlaying(false);
+      busy = busy || running;
+    }
+    drawAll();
+    if (busy) requestAnimationFrame(tick); else ticking = false;
+  }
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      oneVisible = es[0].isIntersecting; if (oneVisible) kick();
+    }).observe($('land'));
+  }
+
+  // Run to a given step without animating, e.g. ?steps=3000 for a finished state.
+  var warmSteps = num('steps', 0, 0, MAX_STEPS) | 0;
+  circPanels.forEach(function (p) {
+    while (p.model.step < warmSteps) { p.model.adamStep(); if (p.model.step % 10 === 0 || p.model.step === warmSteps) p.model.record(); }
+  });
+  restartOne();
+  if (REDUCED) state.one.runs.forEach(function (run) { while (run.step < ONE_STEPS) stepOne(run); });
+  syncPresetButtons();
+  Array.prototype.forEach.call(document.querySelectorAll('.kval'), function (el) { el.textContent = state.k; });
+  window.addEventListener('resize', function () { landCache = {}; drawAll(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAll);
+  drawAll();
+  kick();
+  setPlaying(state.playing);
+
+  // Exposed for testing in the browser console.
+  window.topkDemo = { LOSSES: LOSSES, Model: Model, state: state, panels: circPanels, landPanels: landPanels, sand: sand, sample: sample, STARTS: STARTS, drawAll: drawAll };
+})();
+</script>
+</body>
+</html>

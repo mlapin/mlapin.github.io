@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top-k Simplex Projection Demo</title>
+  <meta name="author" content="Max Lapin">
+  <meta name="description" content="Interactive demo: drop a point and watch its Euclidean projection onto the top-k simplex for k = 1, 2, 3, the step at the heart of training the top-k multiclass SVM (NeurIPS 2015).">
+  <meta property="og:title" content="Projecting onto the top-k simplex: interactive demo">
+  <meta property="og:description" content="Drop a point in 3D and see how the top-k simplex caps each class at 1/k of the total push.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:creator" content="@mlapin_">
+  <link rel="icon" type="image/png" href="../images/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../stylesheet.css">
+  <style>
+    :root {
+      --k1: #3a78c2;
+      --k2: #d7301f;
+      --k3: #1a9850;
+      --card: #f8f9fb;
+    }
+    .page { max-width: 920px; }
+    .back { font-size: 14px; }
+    .cue { color: var(--muted); font-style: italic; font-size: 14px; }
+
+    .card { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 14px; }
+    .bar + .bar { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }
+    .bar label { display: inline-flex; align-items: center; gap: 6px; }
+    .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: #fff; }
+    .seg button { font: inherit; font-size: 13px; border: 0; background: transparent; padding: 4px 10px; cursor: pointer; color: var(--text); }
+    .seg button + button { border-left: 1px solid var(--rule); }
+    .seg button[aria-pressed="true"] { background: #fff4e5; color: #8a4b00; box-shadow: inset 0 0 0 1px #f0b56a; }
+    .seg button:hover { color: var(--link-hover); }
+    input[type=range] { font: inherit; width: 110px; }
+    .val { font-variant-numeric: tabular-nums; min-width: 3.2em; display: inline-block; }
+    .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; flex: none; }
+    .kc1 { color: var(--k1); font-weight: 700; } .kc2 { color: var(--k2); font-weight: 700; } .kc3 { color: var(--k3); font-weight: 700; }
+
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .panel { min-width: 0; background: #fff; border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+    .panel-head { font-size: 14px; font-weight: 700; }
+    .panel-head span { font-weight: 400; color: var(--muted); }
+    .panel canvas { display: block; width: 100%; aspect-ratio: 1; margin-top: 4px; touch-action: none; }
+    #view3d { cursor: grab; }
+    #view3d.dragging { cursor: grabbing; }
+    #view2d { cursor: crosshair; }
+    .shade-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13px; margin-top: 6px; }
+    .shade-legend .sw { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+
+    .vline { font-size: 14px; font-variant-numeric: tabular-nums; margin: 10px 0 4px; }
+    table.proj { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; width: 100%; }
+    table.proj th, table.proj td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
+    table.proj th { font-weight: 400; color: var(--muted); }
+    table.proj td.num { text-align: right; white-space: nowrap; }
+    table.proj tr.off { opacity: 0.35; }
+    .bars { display: grid; grid-template-columns: auto 1fr 3.2em; align-items: center; gap: 1px 6px; font-size: 12px; min-width: 170px; }
+    .track { position: relative; height: 9px; background: #eef1f5; border-radius: 2px; }
+    .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+    .track b { position: absolute; top: -3px; bottom: -3px; border-left: 1.5px dashed #444; }
+    .bars span:last-child, .bars .v { text-align: right; }
+    .case { font-size: 13px; }
+    .case small { color: var(--muted); display: block; }
+
+    .prose h2 { margin-top: 32px; }
+    .formula { font-style: italic; background: var(--thumb-bg); padding: 2px 8px; border-radius: 4px; display: inline-block; margin: 2px 0; }
+    .refs-list { font-size: 14px; padding-left: 20px; }
+    .refs-list li { margin: 4px 0; }
+    pre.bib { background: var(--thumb-bg); padding: 10px 12px; overflow-x: auto; font-size: 13px; border-radius: 4px; }
+
+    @media (max-width: 680px) {
+      .panels { grid-template-columns: 1fr; }
+      table.proj th:nth-child(5), table.proj td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="page project">
+
+  <a class="back" href="../index.html">&larr; Max Lapin</a>
+  <header class="project-head">
+    <h1>Projecting onto the top-k simplex</h1>
+    <p class="subtitle">
+      A companion to <i>Top-k Multiclass SVM</i> (NeurIPS 2015), with Matthias Hein and Bernt Schiele.
+    </p>
+    <nav class="pills" aria-label="Related links">
+      <a href="https://arxiv.org/abs/1511.06683">NeurIPS 2015 paper</a>
+      <a href="demo.html">Losses demo</a>
+      <a href="../libsdca/index.html">libsdca</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </header>
+  <p>
+    A multiclass SVM (<a href="#ref-cs01">Crammer and Singer, 2001</a>) learns, for every training example, how hard
+    that example pushes against each wrong class. In the dual problem, these pushes are nonnegative and share a
+    fixed budget <i>r</i>, so for one example they lie in a simplex. Nothing stops a single wrong class from taking
+    the whole budget. That is the right incentive for top-1 error, but not for top-<i>k</i>: an example is still
+    correct if up to <i>k</i>&minus;1 wrong classes beat the true one. The top-k SVM keeps the budget but caps each
+    class at 1/<i>k</i> of the total that the example actually spends:
+  </p>
+  <p style="text-align:center">
+    <span class="formula">&Delta;<sub>k</sub>(r) = { x : &lang;1, x&rang; &le; r,&ensp; 0 &le; x<sub>i</sub> &le; &lang;1, x&rang; / k }</span>
+  </p>
+  <p>
+    We call this set the <i>top-k simplex</i>. Every update of the top-k SVM projects a point onto it, so the
+    projection has to be exact and fast. Below, an example has three wrong classes, so its pushes live in 3D. Drop
+    a point <i>v</i> and see where it lands for each <i>k</i>.
+  </p>
+
+  <div class="card" role="group" aria-label="Demo controls">
+    <div class="bar">
+      <span>Try a point:</span>
+      <div class="seg" id="presets">
+        <button type="button" data-v="1.10,0.35,-0.20">One class dominates</button>
+        <button type="button" data-v="0.30,0.10,-0.10">A weak push</button>
+        <button type="button" data-v="-0.40,-0.50,0.25">Nothing to push</button>
+        <button type="button" data-v="random">Random</button>
+      </div>
+    </div>
+    <div class="bar">
+      <label><span><i>v</i>&#8321;</span><input type="range" id="v0" min="-1" max="2" step="0.01"><span class="val" id="v0Val"></span></label>
+      <label><span><i>v</i>&#8322;</span><input type="range" id="v1" min="-1" max="2" step="0.01"><span class="val" id="v1Val"></span></label>
+      <label><span><i>v</i>&#8323;</span><input type="range" id="v2" min="-1" max="2" step="0.01"><span class="val" id="v2Val"></span></label>
+    </div>
+    <div class="bar">
+      <span>Show</span>
+      <label><input type="checkbox" class="showk" data-k="1" checked><i class="sw" style="background:var(--k1)"></i>k = 1</label>
+      <label><input type="checkbox" class="showk" data-k="2" checked><i class="sw" style="background:var(--k2)"></i>k = 2</label>
+      <label><input type="checkbox" class="showk" data-k="3" checked><i class="sw" style="background:var(--k3)"></i>k = 3</label>
+      <label><input type="checkbox" id="spin"> Spin</label>
+    </div>
+    <div class="bar">
+      <label title="The budget on the total push. In the smooth top-k hinge loss this is the smoothing parameter gamma.">Budget r
+        <input type="range" id="r" min="0.25" max="2" step="0.05" value="1"><span class="val" id="rVal"></span></label>
+      <label title="Extra penalty on the total push. The SDCA update of the top-k SVM uses rho = 1.">Bias &rho;
+        <input type="range" id="rho" min="0" max="3" step="0.1" value="0"><span class="val" id="rhoVal"></span></label>
+      <span>Cap each class at</span>
+      <div class="seg" id="capMode">
+        <button type="button" data-cap="sum" aria-pressed="true">&lang;1, x&rang; / k</button>
+        <button type="button" data-cap="box">r / k</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-head">In 3D <span>&middot; drag to rotate, drag v to move it</span></div>
+      <canvas id="view3d" aria-label="The top-k simplices for k = 1, 2, 3 in 3D, the point v, and its projections"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Looking down the diagonal <span>&middot; click or drag to move v</span></div>
+      <canvas id="view2d" aria-label="The same scene seen along the direction (1, 1, 1), shaded by how many classes the projection pushes"></canvas>
+      <div class="shade-legend">
+        <span>Shade for</span>
+        <div class="seg" id="shadeK">
+          <button type="button" data-k="1">k = 1</button>
+          <button type="button" data-k="2" aria-pressed="true">k = 2</button>
+          <button type="button" data-k="3">k = 3</button>
+        </div>
+        <span id="shadeKey"></span>
+      </div>
+    </div>
+  </div>
+  <p class="cue">
+    (The second view looks straight down the line where all coordinates are equal, so you see v&rsquo;s position up to
+    its total &lang;1, v&rang;. Clicking keeps the total and moves v sideways. The shading shows, for every point you
+    could click, how many classes the projection pushes.)
+  </p>
+
+  <div class="vline" id="vline" aria-live="off"></div>
+  <table class="proj">
+    <thead><tr><th>k</th><th>Projection x, with the cap dashed</th><th>&lang;1, x&rang;</th><th>Cap</th><th>&#8214;v &minus; x&#8214;</th><th>Which case</th></tr></thead>
+    <tbody id="projRows"></tbody>
+  </table>
+
+  <div class="prose">
+    <h2>What the shapes say</h2>
+    <p>
+      For <i>k</i> = 1 the cap is no constraint at all, and &Delta;<sub>1</sub>(r) is the familiar corner of the
+      simplex: one wrong class may take the whole budget. For <i>k</i> = 2 no class may take more than half of the
+      total, so whenever the example pushes at all, at least two classes share the push. The set shrinks to the
+      smaller <span class="kc2">red</span> pyramid, whose top corners sit halfway along the edges of the
+      <span class="kc1">blue</span> one. For <i>k</i> = 3 every class gets exactly a third, and the set collapses
+      to the <span class="kc3">green</span> segment along the diagonal. With <i>m</i> wrong classes,
+      &Delta;<sub>k</sub> has one vertex at the origin and one for every subset of <i>k</i> classes sharing the
+      budget equally, which is Figure 2 in the paper.
+    </p>
+    <p>
+      The cap is the dual side of averaging. The multiclass SVM charges an example for its single largest margin
+      violation; the top-k hinge loss charges the average of the <i>k</i> largest, which makes it a tighter upper
+      bound on the top-<i>k</i> error. In the dual, that average becomes the rule that no class may take more than
+      1/<i>k</i> of the push (Proposition 2).
+    </p>
+
+    <h2>How the projection is computed</h2>
+    <p>
+      The projection solves <span class="formula">min &#8214;v &minus; x&#8214;&sup2; + &rho;&lang;1, x&rang;&sup2; over x &isin; &Delta;<sub>k</sub>(r)</span>.
+      With &rho; = 0 this is the Euclidean projection. The algorithm in Section 4 of the paper splits it into two
+      cases, and the last column of the table shows which one applies:
+    </p>
+    <ul>
+      <li><b>Below budget.</b> First drop the budget and project onto the <i>top-k cone</i>
+        {0 &le; x<sub>i</sub> &le; &lang;1, x&rang;/k}. The solution is v shifted down by a threshold <i>t</i>
+        and clipped to [0, <i>u</i>], where <i>u</i> is the cap. The classes split into three groups: at the cap,
+        in between, and at zero. For a given split, <i>t</i> and <i>u</i> solve a 2&times;2 linear system, so a
+        search over splits in sorted order finds the answer (Lemma 3). If the sum of the <i>k</i> largest
+        entries of v is not positive, the answer is 0 (Lemma 4). If this solution spends at most <i>r</i>, it is
+        also the projection onto &Delta;<sub>k</sub>(r).</li>
+      <li><b>Budget spent.</b> Otherwise the optimum spends exactly <i>r</i> (Lemma 5). Then the cap is the
+        constant <i>r</i>/<i>k</i>, the bias term is a constant too, and what remains is a continuous quadratic
+        knapsack problem: project onto {&lang;1, x&rang; = r, 0 &le; x<sub>i</sub> &le; r/k}. We solve it with
+        the variable fixing algorithm of <a href="#ref-kiw08">Kiwiel (2008)</a>.</li>
+    </ul>
+    <p>
+      The whole projection takes <i>O</i>(<i>m</i> log <i>m</i> + <i>km</i>) time for <i>m</i> classes, about
+      as fast as projecting onto the plain simplex. This page runs the same two cases every time v moves, with a
+      simple sort-based solver for the knapsack step.
+    </p>
+
+    <h2>Where the projection is used</h2>
+    <ul>
+      <li><b>Training the top-k SVM.</b> We train with proximal stochastic dual coordinate ascent
+        (<a href="#ref-ssz13">Shalev-Shwartz and Zhang, 2013</a>, <a href="#ref-ssz16">2016</a>), which updates
+        one example at a time. The best update of that example&rsquo;s dual variables is a projection onto
+        &Delta;<sub>k</sub>(1/(&lambda;n)) with bias &rho; = 1 (Proposition 4), where &lambda; is the
+        regularization constant and <i>n</i> the number of examples. The bias pulls the total push down, which you
+        can see by moving the &rho; slider.</li>
+      <li><b>The smooth top-k hinge loss.</b> In our <a href="#ref-lhs16">CVPR 2016 paper</a> we smoothed the top-k
+        hinge loss. Its value and gradient come from projecting the vector of margins onto
+        &Delta;<sub>k</sub>(&gamma;), where &gamma; is the smoothing parameter, so the budget slider plays the role
+        of &gamma; (Proposition 7). The gradient is that projection divided by &gamma;, so the bars in the table
+        are how hard the smooth loss pushes on each class.</li>
+    </ul>
+    <p>
+      Both are implemented in <a href="../libsdca/index.html">libsdca</a>, the library I wrote for these papers.
+    </p>
+
+    <h2>Cap by the total, or by the budget?</h2>
+    <p>
+      There is a second natural way to cap: let no class take more than <i>r</i>/<i>k</i>, a fixed share of the
+      budget rather than of the total actually spent. It comes from the ranking losses of
+      <a href="#ref-ubg09">Usunier et al. (2009)</a> and gives a looser top-k hinge loss, which we also optimize
+      exactly in Section 5 of the paper. Switch <i>Cap each class at</i> to <i>r / k</i> and pick
+      <i>A weak push</i>: with the fixed cap, one class may still take most of a small total, because the cap only
+      bites when the example pushes near full strength. Capping by the total enforces the share at every strength,
+      which is why that set is smaller and the loss is a tighter bound.
+    </p>
+
+    <h2 id="references">References</h2>
+    <ul class="refs-list">
+      <li id="ref-cs01">K. Crammer and Y. Singer.
+        <a href="https://www.jmlr.org/papers/v2/crammer01a.html">On the algorithmic implementation of multiclass
+        kernel-based vector machines</a>. <i>JMLR</i>, 2:265&ndash;292, 2001.</li>
+      <li id="ref-kiw08">K. C. Kiwiel. <a href="https://doi.org/10.1007/s10957-007-9317-7">Variable fixing algorithms
+        for the continuous quadratic knapsack problem</a>. <i>Journal of Optimization Theory and Applications</i>,
+        136(3):445&ndash;458, 2008.</li>
+      <li id="ref-lhs15">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1511.06683">Top-k
+        multiclass SVM</a>. In <i>NeurIPS</i>, 2015.</li>
+      <li id="ref-lhs16">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1512.00486">Loss
+        functions for top-k error: Analysis and insights</a>. In <i>CVPR</i>, 2016.</li>
+      <li id="ref-ssz13">S. Shalev-Shwartz and T. Zhang.
+        <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html">Stochastic dual coordinate ascent methods
+        for regularized loss minimization</a>. <i>JMLR</i>, 14:567&ndash;599, 2013.</li>
+      <li id="ref-ssz16">S. Shalev-Shwartz and T. Zhang. <a href="https://doi.org/10.1007/s10107-014-0839-0">Accelerated
+        proximal stochastic dual coordinate ascent for regularized loss minimization</a>. <i>Mathematical
+        Programming</i>, 155:105&ndash;145, 2016.</li>
+      <li id="ref-ubg09">N. Usunier, D. Buffoni, and P. Gallinari.
+        <a href="https://doi.org/10.1145/1553374.1553509">Ranking with ordered weighted pairwise classification</a>.
+        In <i>ICML</i>, 2009.</li>
+    </ul>
+
+    <h2 id="cite">Cite</h2>
+<pre class="bib">@inproceedings{lapin2015topk,
+  title     = {Top-k Multiclass {SVM}},
+  author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
+  booktitle = {NeurIPS},
+  year      = {2015}
+}</pre>
+  </div>
+
+  <footer>
+    Demo format inspired by <a href="https://jonbarron.info/softmaxfix/demo.html">Jon Barron's softmax demo</a>.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var KCOL = ['#3a78c2', '#d7301f', '#1a9850'];
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- projections (Lapin et al., NeurIPS 2015, Sections 4 and 5) ----------
+  function total(x) { var s = 0; for (var i = 0; i < x.length; i++) s += x[i]; return s; }
+  function zeros(d) { var x = []; for (var i = 0; i < d; i++) x.push(0); return x; }
+  function clip(z, lo, hi) { return z < lo ? lo : z > hi ? hi : z; }
+
+  // min ||x - a||^2  s.t.  <1, x> = s,  0 <= x_i <= u. f(t) = sum clip(a_i - t, 0, u) is piecewise linear.
+  function knapsack(a, u, s) {
+    var d = a.length, x = [], i, j;
+    if (s <= 0) return zeros(d);
+    if (s >= d * u) { for (i = 0; i < d; i++) x.push(u); return x; }
+    var bp = [];
+    for (i = 0; i < d; i++) bp.push(a[i] - u, a[i]);
+    bp.sort(function (p, q) { return p - q; });
+    var f = function (t) { var z = 0; for (var i = 0; i < d; i++) z += clip(a[i] - t, 0, u); return z; };
+    var lo = bp[0], flo = f(lo), t = bp[bp.length - 1];
+    for (j = 1; j < bp.length; j++) {
+      var hi = bp[j], fhi = f(hi);
+      if (fhi <= s) { t = flo === fhi ? hi : lo + (flo - s) * (hi - lo) / (flo - fhi); break; }
+      lo = hi; flo = fhi;
+    }
+    for (i = 0; i < d; i++) x.push(clip(a[i] - t, 0, u));
+    return x;
+  }
+
+  // min ||x - a||^2 + rho <1, x>^2  s.t.  0 <= x_i <= <1, x> / k  (Lemmas 3 and 4).
+  function topkCone(a, k, rho) {
+    var d = a.length, i, nU, endM;
+    k = Math.min(Math.max(1, k), d);
+    var idx = a.map(function (_, i) { return i; }).sort(function (p, q) { return a[q] - a[p]; });
+    var s = idx.map(function (i) { return a[i]; });
+    var top = 0;
+    for (i = 0; i < k; i++) top += s[i];
+    if (top <= 1e-14) return { x: zeros(d), kase: 'zero' };
+
+    var u = top / (k + rho * k * k);
+    if (k === d || s[k] <= s[k - 1] - u + 1e-10) {
+      var x = zeros(d);
+      for (i = 0; i < k; i++) x[idx[i]] = u;
+      return { x: x, kase: 'equal' };
+    }
+    var best = null, bestObj = Infinity, tol = 1e-9;
+    for (nU = 0; nU < k; nU++) {
+      var sumU = 0;
+      for (i = 0; i < nU; i++) sumU += s[i];
+      for (endM = k; endM <= d; endM++) {
+        var nM = endM - nU, sumM = 0;
+        for (i = nU; i < endM; i++) sumM += s[i];
+        var D = (k - nU) * (k - nU) + (nU + rho * k * k) * nM;
+        var uu = (nM * sumU + (k - nU) * sumM) / D;
+        if (uu <= 1e-14) continue;
+        var t = (nU * (1 + rho * k) * sumM - (k - nU + rho * k * nM) * sumU) / D + rho * uu * k;
+        var maxL = endM < d ? s[endM] : -Infinity, minU = nU > 0 ? s[nU - 1] : Infinity;
+        if (maxL <= t + tol && t <= s[endM - 1] + tol && s[nU] <= t + uu + tol && t + uu <= minU + tol) {
+          var y = a.map(function (ai) { return clip(ai - t, 0, uu); });
+          var sy = total(y), obj = rho * sy * sy;
+          for (i = 0; i < d; i++) obj += (y[i] - a[i]) * (y[i] - a[i]);
+          if (obj < bestObj) { bestObj = obj; best = y; }
+        }
+      }
+    }
+    return best ? { x: best, kase: 'cone' } : { x: zeros(d), kase: 'zero' };
+  }
+
+  // Projection onto the top-k simplex Delta_k(r) (Lemma 5): the cone solution if it fits the budget, else knapsack.
+  function topkSimplex(a, k, r, rho) {
+    if (r <= 0) return { x: zeros(a.length), kase: 'zero' };
+    var c = topkCone(a, k, rho);
+    if (total(c.x) <= r + 1e-10) return c;
+    return { x: knapsack(a, r / k, r), kase: 'knap' };
+  }
+
+  // The same with the fixed cap x_i <= r / k (Usunier et al.; Section 5): a 1-D convex search over the total.
+  function boxSimplex(a, k, r, rho) {
+    var d = a.length, u = r / k;
+    if (r <= 0) return { x: zeros(d), kase: 'zero' };
+    var x, s;
+    if (rho === 0) {
+      x = a.map(function (ai) { return clip(ai, 0, u); });
+      if (total(x) > r) return { x: knapsack(a, u, r), kase: 'knap' };
+    } else {
+      var g = function (s) {
+        var y = knapsack(a, u, s), z = rho * s * s;
+        for (var i = 0; i < d; i++) z += (y[i] - a[i]) * (y[i] - a[i]);
+        return z;
+      };
+      var lo = 0, hi = r;
+      for (var it = 0; it < 90; it++) {
+        var m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3;
+        if (g(m1) < g(m2)) hi = m2; else lo = m1;
+      }
+      s = 0.5 * (lo + hi);
+      if (g(0) <= g(s)) s = 0;
+      if (g(r) <= g(s)) s = r;
+      x = knapsack(a, u, s);
+      if (s >= r - 1e-9) return { x: x, kase: 'knap' };
+    }
+    return total(x) <= 1e-12 ? { x: zeros(d), kase: 'zero' } : { x: x, kase: 'cone' };
+  }
+
+  function project(v, k) {
+    return (state.cap === 'box' ? boxSimplex : topkSimplex)(v, k, state.r, state.rho);
+  }
+
+  // ---------- state ----------
+  var state = {
+    v: [1.10, 0.35, -0.20], r: 1, rho: 0, cap: 'sum', show: [true, true, true], shadeK: 2,
+    az: 0.2, el: 0.35, spin: !REDUCED, tween: null
+  };
+
+  // ---------- polytope geometry ----------
+  function dot(p, q) { return p[0] * q[0] + p[1] * q[1] + p[2] * q[2]; }
+  function sub(p, q) { return [p[0] - q[0], p[1] - q[1], p[2] - q[2]]; }
+  function cross(p, q) { return [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]]; }
+  function det3(A) { return dot(A[0], cross(A[1], A[2])); }
+
+  // Half-spaces n.x <= b, then vertices from every triple of planes and faces from the planes they touch.
+  function polytope(k, r, cap) {
+    var P = [], i, a, b, c;
+    for (i = 0; i < 3; i++) { var n = [0, 0, 0]; n[i] = -1; P.push({ n: n, b: 0 }); }
+    for (i = 0; i < 3; i++) {
+      var m = cap === 'box' ? [0, 0, 0] : [-1 / k, -1 / k, -1 / k];
+      m[i] += 1;
+      P.push({ n: m, b: cap === 'box' ? r / k : 0 });
+    }
+    P.push({ n: [1, 1, 1], b: r });
+    var V = [];
+    for (a = 0; a < P.length; a++) for (b = a + 1; b < P.length; b++) for (c = b + 1; c < P.length; c++) {
+      var A = [P[a].n, P[b].n, P[c].n], dt = det3(A);
+      if (Math.abs(dt) < 1e-9) continue;
+      var rhs = [P[a].b, P[b].b, P[c].b], x = [];
+      for (i = 0; i < 3; i++) {
+        var Ai = A.map(function (row, j) { var rr = row.slice(); rr[i] = rhs[j]; return rr; });
+        x.push(det3(Ai) / dt);
+      }
+      if (!P.every(function (p) { return dot(p.n, x) <= p.b + 1e-9; })) continue;
+      if (V.some(function (w) { var e = sub(w, x); return dot(e, e) < 1e-14; })) continue;
+      V.push(x);
+    }
+    var F = [], seen = {};
+    P.forEach(function (p) {
+      var on = [];
+      V.forEach(function (w, j) { if (Math.abs(dot(p.n, w) - p.b) < 1e-9) on.push(j); });
+      if (on.length < 3) return;
+      var key = on.slice().sort().join(',');
+      if (seen[key]) return;
+      seen[key] = true;
+      var cen = [0, 0, 0];
+      on.forEach(function (j) { for (var q = 0; q < 3; q++) cen[q] += V[j][q] / on.length; });
+      var e1 = sub(V[on[0]], cen), e2 = cross(p.n, e1);
+      on.sort(function (p1, p2) {
+        var d1 = sub(V[p1], cen), d2 = sub(V[p2], cen);
+        return Math.atan2(dot(d1, e2), dot(d1, e1)) - Math.atan2(dot(d2, e2), dot(d2, e1));
+      });
+      var nn = Math.sqrt(dot(p.n, p.n));
+      F.push({ idx: on, n: p.n.map(function (z) { return z / nn; }), cen: cen });
+    });
+    return { V: V, F: F };
+  }
+
+  // ---------- canvases ----------
+  var c3 = $('view3d'), c2 = $('view2d'), ctx3 = c3.getContext('2d'), ctx2 = c2.getContext('2d');
+  var dpr = 1, W3 = 0, W2 = 0;
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    [c3, c2].forEach(function (c) {
+      var w = c.clientWidth;
+      c.width = Math.round(w * dpr); c.height = Math.round(w * dpr);
+    });
+    W3 = c3.clientWidth; W2 = c2.clientWidth;
+    shadeCache = null;
+    draw();
+  }
+
+  function cam() {
+    var ca = Math.cos(state.az), sa = Math.sin(state.az), ce = Math.cos(state.el), se = Math.sin(state.el);
+    return { R: [-sa, ca, 0], U: [-se * ca, -se * sa, ce], F: [ce * ca, ce * sa, se] };
+  }
+  function scene() { return Math.max(1, state.r); }
+  function proj3(p, C) {
+    var R = scene(), s = W3 / (2.75 * R), o = [0.4 * R, 0.4 * R, 0.32 * R], q = sub(p, o);
+    return { x: W3 / 2 + s * dot(q, C.R), y: W3 * 0.5 - s * dot(q, C.U), z: dot(q, C.F), s: s };
+  }
+
+  function arrowLabel(ctx, txt, x, y, color, bold) {
+    ctx.font = (bold ? '700 ' : '') + '13px Lato, sans-serif';
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(txt, x, y);
+  }
+  function badge(ctx, x, y, k) {
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = KCOL[k - 1]; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font = '700 11px Lato, sans-serif'; ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(k), x, y + 0.5);
+  }
+  function vDot(ctx, x, y) {
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = '#222'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = 'italic 700 14px Lato, sans-serif'; ctx.fillStyle = '#222';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('v', x + 7, y - 4);
+  }
+  function rgba(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  var results = [];
+  function compute() {
+    results = [1, 2, 3].map(function (k) { return project(state.v, k); });
+  }
+
+  function draw3d() {
+    var ctx = ctx3, C = cam(), R = scene(), i;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W3, W3);
+    var O = proj3([0, 0, 0], C), L = 1.3 * R;
+
+    // axes, with a tick at r
+    ['x\u2081', 'x\u2082', 'x\u2083'].forEach(function (name, a) {
+      var e = [0, 0, 0]; e[a] = L;
+      var P = proj3(e, C);
+      ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.lineTo(P.x, P.y); ctx.stroke();
+      var dx = P.x - O.x, dy = P.y - O.y, dl = Math.hypot(dx, dy) || 1;
+      arrowLabel(ctx, name, P.x + 12 * dx / dl, P.y + 12 * dy / dl, '#666');
+      var t = [0, 0, 0]; t[a] = state.r;
+      var T = proj3(t, C);
+      ctx.beginPath(); ctx.moveTo(T.x - 3 * dy / dl, T.y + 3 * dx / dl); ctx.lineTo(T.x + 3 * dy / dl, T.y - 3 * dx / dl); ctx.stroke();
+    });
+    arrowLabel(ctx, '0', O.x - 10, O.y + 8, '#888');
+
+    // faces of every shown polytope, back to front
+    var polys = [];
+    [1, 2, 3].forEach(function (k) { if (state.show[k - 1]) polys.push({ k: k, g: polytope(k, state.r, state.cap) }); });
+    var faces = [];
+    polys.forEach(function (p) {
+      var S = p.g.V.map(function (w) { return proj3(w, C); });
+      if (p.g.F.length === 0 && p.g.V.length === 2) {
+        faces.push({ k: p.k, seg: [S[0], S[1]], z: (S[0].z + S[1].z) / 2 });
+      }
+      p.g.F.forEach(function (f) {
+        faces.push({ k: p.k, pts: f.idx.map(function (j) { return S[j]; }), z: proj3(f.cen, C).z, front: dot(f.n, C.F) > 0 });
+      });
+    });
+    faces.sort(function (a, b) { return a.z - b.z; });
+    faces.forEach(function (f) {
+      var col = KCOL[f.k - 1];
+      if (f.seg) {
+        ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(f.seg[0].x, f.seg[0].y); ctx.lineTo(f.seg[1].x, f.seg[1].y); ctx.stroke();
+        ctx.lineCap = 'butt';
+        return;
+      }
+      ctx.beginPath();
+      f.pts.forEach(function (p, j) { if (j) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+      ctx.closePath();
+      ctx.fillStyle = rgba(col, f.front ? 0.13 : 0.07); ctx.fill();
+      ctx.strokeStyle = rgba(col, f.front ? 0.95 : 0.4); ctx.lineWidth = f.front ? 1.6 : 1; ctx.stroke();
+    });
+
+    // v, a drop line to the floor, and the projections
+    var Vp = proj3(state.v, C), Fp = proj3([state.v[0], state.v[1], 0], C);
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(Vp.x, Vp.y); ctx.lineTo(Fp.x, Fp.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(Fp.x, Fp.y, 2, 0, 2 * Math.PI); ctx.fill();
+    var marks = [];
+    for (i = 0; i < 3; i++) {
+      if (!state.show[i]) continue;
+      var X = proj3(results[i].x, C);
+      ctx.strokeStyle = KCOL[i]; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(Vp.x, Vp.y); ctx.lineTo(X.x, X.y); ctx.stroke();
+      ctx.setLineDash([]);
+      marks.push({ k: i + 1, p: X });
+    }
+    marks.sort(function (a, b) { return a.p.z - b.p.z; }).forEach(function (m) { badge(ctx, m.p.x, m.p.y, m.k); });
+    vDot(ctx, Vp.x, Vp.y);
+    state.vScreen = Vp;
+  }
+
+  // ---------- the view down the diagonal ----------
+  var EX = [-Math.SQRT1_2, Math.SQRT1_2, 0], EY = [-1 / Math.sqrt(6), -1 / Math.sqrt(6), 2 / Math.sqrt(6)];
+  function span2() { return 1.45 * Math.max(1, state.r); }
+  function to2(p) {
+    var s = W2 / (2 * span2());
+    return { x: W2 / 2 + s * dot(p, EX), y: W2 * 0.55 - s * dot(p, EY) };
+  }
+  function from2(px, py, sum) {
+    var s = W2 / (2 * span2()), X = (px - W2 / 2) / s, Y = (W2 * 0.55 - py) / s, h = sum / 3;
+    return [h + X * EX[0] + Y * EY[0], h + X * EX[1] + Y * EY[1], h + X * EX[2] + Y * EY[2]];
+  }
+  function hull(pts) {
+    pts = pts.slice().sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+    if (pts.length < 3) return pts;
+    var crossz = function (o, a, b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); };
+    var lo = [], up = [], i;
+    for (i = 0; i < pts.length; i++) {
+      while (lo.length >= 2 && crossz(lo[lo.length - 2], lo[lo.length - 1], pts[i]) <= 1e-9) lo.pop();
+      lo.push(pts[i]);
+    }
+    for (i = pts.length - 1; i >= 0; i--) {
+      while (up.length >= 2 && crossz(up[up.length - 2], up[up.length - 1], pts[i]) <= 1e-9) up.pop();
+      up.push(pts[i]);
+    }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+
+  var SHADE = [0, 0.06, 0.14, 0.25];
+  var shadeCache = null, shadeTimer = 0;
+  function shadeKey(step) {
+    return [state.shadeK, total(state.v).toFixed(4), state.r, state.rho, state.cap, W2, dpr, step].join('|');
+  }
+  function buildShade(step) {
+    var n = Math.ceil(W2 / step), img = document.createElement('canvas');
+    img.width = n; img.height = n;
+    var ictx = img.getContext('2d'), data = ictx.createImageData(n, n), sum = total(state.v);
+    var col = parseInt(KCOL[state.shadeK - 1].slice(1), 16), cr = col >> 16, cg = (col >> 8) & 255, cb = col & 255;
+    for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) {
+      var x = project(from2((i + 0.5) * step, (j + 0.5) * step, sum), state.shadeK).x, cnt = 0;
+      for (var q = 0; q < 3; q++) if (x[q] > 1e-9) cnt++;
+      var a = SHADE[cnt], o = 4 * (j * n + i);
+      data.data[o] = Math.round(255 + a * (cr - 255));
+      data.data[o + 1] = Math.round(255 + a * (cg - 255));
+      data.data[o + 2] = Math.round(255 + a * (cb - 255));
+      data.data[o + 3] = 255;
+    }
+    ictx.putImageData(data, 0, 0);
+    return { key: shadeKey(step), img: img, step: step };
+  }
+  function getShade() {
+    var fine = shadeKey(2);
+    if (shadeCache && shadeCache.key === fine) return shadeCache;
+    if (!shadeCache || shadeCache.key !== shadeKey(6)) shadeCache = buildShade(6);
+    clearTimeout(shadeTimer);
+    shadeTimer = setTimeout(function () { shadeCache = buildShade(2); draw2d(); }, 140);
+    return shadeCache;
+  }
+
+  function draw2d() {
+    var ctx = ctx2, i;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var sh = getShade();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sh.img, 0, 0, sh.img.width * sh.step, sh.img.height * sh.step);
+
+    // corner directions
+    var Rr = 1.18 * Math.max(1, state.r);
+    ['x\u2081', 'x\u2082', 'x\u2083'].forEach(function (name, a) {
+      var e = [0, 0, 0]; e[a] = Rr;
+      var P = to2(e), O = to2([0, 0, 0]);
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.lineTo(P.x, P.y); ctx.stroke();
+      ctx.setLineDash([]);
+      var dx = P.x - O.x, dy = P.y - O.y, dl = Math.hypot(dx, dy) || 1;
+      arrowLabel(ctx, name, P.x + 11 * dx / dl, P.y + 11 * dy / dl, '#666');
+    });
+
+    [1, 2, 3].forEach(function (k) {
+      if (!state.show[k - 1]) return;
+      var g = polytope(k, state.r, state.cap), H = hull(g.V.map(to2)), col = KCOL[k - 1];
+      if (H.length <= 2) {
+        var p = H[0];
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, 2 * Math.PI);
+        ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.stroke();
+        return;
+      }
+      ctx.beginPath();
+      H.forEach(function (p, j) { if (j) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+      ctx.closePath();
+      ctx.fillStyle = rgba(col, 0.06); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke();
+    });
+
+    var Vp = to2(state.v), marks = [];
+    for (i = 0; i < 3; i++) {
+      if (!state.show[i]) continue;
+      var X = to2(results[i].x);
+      ctx.strokeStyle = KCOL[i]; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(Vp.x, Vp.y); ctx.lineTo(X.x, X.y); ctx.stroke();
+      ctx.setLineDash([]);
+      marks.push({ k: i + 1, p: X });
+    }
+    // Projections that land on the same spot fan out a little so every badge stays readable.
+    marks.forEach(function (m, j) {
+      var dup = marks.slice(0, j).filter(function (o) { return Math.hypot(o.p.x - m.p.x, o.p.y - m.p.y) < 10; }).length;
+      badge(ctx, m.p.x + dup * 12, m.p.y - dup * 6, m.k);
+    });
+    vDot(ctx, Vp.x, Vp.y);
+  }
+
+  // ---------- readout ----------
+  var CASES = {
+    zero: ['x = 0', 'nothing to push (Lemma 4)'],
+    equal: ['Below budget', 'the top k share equally (Lemma 3)'],
+    cone: ['Below budget', 'top-k cone (Lemma 3)'],
+    knap: ['Budget spent', '&lang;1, x&rang; = r: knapsack (Lemma 5)']
+  };
+  function f2(z) { return (Math.abs(z) < 5e-3 ? 0 : z).toFixed(2).replace('-', '&minus;'); }
+  function readout() {
+    var v = state.v;
+    $('vline').innerHTML = '<i>v</i> = (' + v.map(f2).join(', ') + '), &ensp;&lang;1, v&rang; = ' + f2(total(v)) +
+      ', &ensp;budget <i>r</i> = ' + state.r.toFixed(2) + (state.rho ? ', &ensp;bias &rho; = ' + state.rho.toFixed(1) : '');
+    var scale = Math.max(state.r, 1e-9);
+    $('projRows').innerHTML = results.map(function (res, i) {
+      var k = i + 1, x = res.x, s = total(x), cap = state.cap === 'box' ? state.r / k : s / k;
+      var bars = x.map(function (xi, q) {
+        return '<span>x<sub>' + (q + 1) + '</sub></span><span class="track"><i style="width:' +
+          (100 * Math.min(xi / scale, 1)).toFixed(1) + '%;background:' + KCOL[i] + '"></i><b style="left:' +
+          (100 * Math.min(cap / scale, 1)).toFixed(1) + '%"></b></span><span class="v">' + f2(xi) + '</span>';
+      }).join('');
+      var dv = 0;
+      for (var q = 0; q < 3; q++) dv += (v[q] - x[q]) * (v[q] - x[q]);
+      var cs = CASES[res.kase], note = cs[1];
+      if (state.cap === 'box' && res.kase === 'cone') note = state.rho ? 'total below r' : 'v clipped to [0, r/k]';
+      if (state.cap === 'box' && res.kase === 'knap') note = '&lang;1, x&rang; = r: knapsack';
+      return '<tr class="' + (state.show[i] ? '' : 'off') + '"><td><span class="kc' + k + '">' + k + '</span></td>' +
+        '<td><div class="bars">' + bars + '</div></td><td class="num">' + f2(s) + '</td><td class="num">' + f2(cap) +
+        '</td><td class="num">' + f2(Math.sqrt(dv)) + '</td><td class="case">' + cs[0] + '<small>' + note + '</small></td></tr>';
+    }).join('');
+  }
+
+  function shadeLegend() {
+    var col = KCOL[state.shadeK - 1];
+    $('shadeKey').innerHTML = 'classes pushed: ' + SHADE.map(function (a, n) {
+      return '<span style="display:inline-flex;align-items:center;gap:3px"><i class="sw" style="background:' +
+        rgba(col, a) + '"></i>' + n + '</span>';
+    }).join(' ');
+  }
+
+  function syncSliders() {
+    for (var q = 0; q < 3; q++) {
+      $('v' + q).value = state.v[q];
+      $('v' + q + 'Val').innerHTML = f2(state.v[q]);
+    }
+  }
+
+  function draw() {
+    if (!W3) return;
+    compute();
+    draw3d();
+    draw2d();
+    readout();
+  }
+
+  // ---------- animation: tweens between points and a slow spin ----------
+  var raf = 0, lastT = 0;
+  function loop(t) {
+    raf = 0;
+    var dt = lastT ? Math.min(t - lastT, 50) : 16;
+    lastT = t;
+    if (state.tween) {
+      var tw = state.tween, u = Math.min((t - tw.t0) / tw.dur, 1), e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+      state.v = tw.from.map(function (z, q) { return z + e * (tw.to[q] - z); });
+      if (u >= 1) state.tween = null;
+      syncSliders();
+    }
+    if (state.spin && !dragging) state.az += dt * 0.00025;
+    draw();
+    if (state.tween || state.spin) { raf = requestAnimationFrame(loop); } else { lastT = 0; }
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+
+  function setV(v, animate) {
+    v = v.map(function (z) { return clip(z, -1, 2); });
+    if (animate && !REDUCED) {
+      state.tween = { from: state.v.slice(), to: v, t0: performance.now(), dur: 550 };
+      kick();
+    } else {
+      state.tween = null;
+      state.v = v;
+      syncSliders();
+      draw();
+    }
+  }
+
+  // ---------- controls ----------
+  function pressed(group, btn) {
+    group.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+  }
+  $('presets').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    var spec = b.getAttribute('data-v'), v;
+    if (spec === 'random') {
+      v = [0, 1, 2].map(function () { return -0.6 + 2.0 * Math.random(); });
+    } else {
+      v = spec.split(',').map(Number);
+    }
+    pressed($('presets'), spec === 'random' ? null : b);
+    setV(v, true);
+  });
+  [0, 1, 2].forEach(function (q) {
+    $('v' + q).addEventListener('input', function () {
+      var v = state.v.slice();
+      v[q] = +this.value;
+      pressed($('presets'), null);
+      setV(v, false);
+    });
+  });
+  document.querySelectorAll('.showk').forEach(function (cb) {
+    cb.addEventListener('change', function () { state.show[+cb.getAttribute('data-k') - 1] = cb.checked; draw(); });
+  });
+  $('spin').checked = state.spin;
+  $('spin').addEventListener('change', function () { state.spin = this.checked; draw(); kick(); });
+  function sliders() {
+    state.r = +$('r').value; state.rho = +$('rho').value;
+    $('rVal').textContent = state.r.toFixed(2);
+    $('rhoVal').textContent = state.rho.toFixed(1);
+  }
+  ['r', 'rho'].forEach(function (id) { $(id).addEventListener('input', function () { sliders(); draw(); }); });
+  $('capMode').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    state.cap = b.getAttribute('data-cap');
+    pressed($('capMode'), b);
+    draw();
+  });
+  $('shadeK').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    state.shadeK = +b.getAttribute('data-k');
+    pressed($('shadeK'), b);
+    shadeLegend();
+    draw();
+  });
+
+  // 3D: drag v in the screen plane if grabbed, otherwise orbit.
+  var dragging = null;
+  function local(c, e) { var b = c.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; }
+  c3.addEventListener('pointerdown', function (e) {
+    var p = local(c3, e), V = state.vScreen;
+    dragging = V && Math.hypot(p.x - V.x, p.y - V.y) < 16 ? { mode: 'v', last: p } : { mode: 'orbit', last: p };
+    if (dragging.mode === 'orbit' && state.spin) { state.spin = false; $('spin').checked = false; }
+    c3.setPointerCapture(e.pointerId);
+    c3.classList.add('dragging');
+  });
+  c3.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var p = local(c3, e), dx = p.x - dragging.last.x, dy = p.y - dragging.last.y;
+    dragging.last = p;
+    if (dragging.mode === 'orbit') {
+      state.az -= dx * 0.01;
+      state.el = clip(state.el + dy * 0.01, -1.4, 1.5);
+      draw();
+    } else {
+      var C = cam(), s = proj3([0, 0, 0], C).s;
+      pressed($('presets'), null);
+      setV(state.v.map(function (z, q) { return z + (dx * C.R[q] - dy * C.U[q]) / s; }), false);
+    }
+  });
+  function endDrag() { dragging = null; c3.classList.remove('dragging'); kick(); }
+  c3.addEventListener('pointerup', endDrag);
+  c3.addEventListener('pointercancel', endDrag);
+
+  // 2D: click or drag to move v sideways, keeping its total.
+  var drag2 = false;
+  function place2(e) {
+    var p = local(c2, e);
+    pressed($('presets'), null);
+    setV(from2(p.x, p.y, total(state.v)), false);
+  }
+  c2.addEventListener('pointerdown', function (e) { drag2 = true; c2.setPointerCapture(e.pointerId); place2(e); });
+  c2.addEventListener('pointermove', function (e) { if (drag2) place2(e); });
+  c2.addEventListener('pointerup', function () { drag2 = false; });
+  c2.addEventListener('pointercancel', function () { drag2 = false; });
+
+  window.addEventListener('resize', resize);
+  sliders();
+  syncSliders();
+  shadeLegend();
+  pressed($('presets'), $('presets').querySelector('button'));
+  resize();
+  kick();
+
+  window.simplexDemo = {
+    state: state, draw: draw, setV: setV,
+    topkSimplex: topkSimplex, boxSimplex: boxSimplex, topkCone: topkCone, knapsack: knapsack
+  };
+})();
+</script>
+</body>
+</html>
