@@ -29,16 +29,26 @@ class CommitMessage(NamedTuple):
 FORBIDDEN_MARKERS = {
     "Co-Authored-By": re.compile(r"co[\t _-]*authored[\t _-]*by", re.IGNORECASE),
     "Co-Designed-With": re.compile(r"co[\t _-]*designed[\t _-]*with", re.IGNORECASE),
-    "Claude-Session": re.compile(r"claude[\t _-]*session", re.IGNORECASE),
+    "Agent-Session": re.compile(r"(?:claude|codex)[\t _-]*session", re.IGNORECASE),
     "Generated-With": re.compile(
         r"generated[\t _-]*with[\t _-]*\[?\s*(claude|cursor|codex|copilot)",
         re.IGNORECASE,
     ),
+    # Codex CLI's trailer is `Co-authored-by: Codex <noreply@openai.com>`; the GitHub
+    # account it resolves to also takes codex@users.noreply.github.com, and Codex cloud
+    # acts through the chatgpt-codex-connector app.
     "Agent-Identity": re.compile(
-        r"cursoragent@cursor\.com|noreply@anthropic\.com", re.IGNORECASE
+        r"cursoragent@cursor\.com|noreply@anthropic\.com|noreply@openai\.com"
+        r"|(?<![\w.+-])(?:\d+\+)?codex@users\.noreply\.github\.com"
+        r"|chatgpt-codex-connector",
+        re.IGNORECASE,
     ),
+    # Includes Codex cloud task links (chatgpt.com/codex/...) and ChatGPT share and
+    # conversation links (chatgpt.com/s/..., chatgpt.com/c/...).
     "Session-Link": re.compile(
-        r"https?://(?:www\.)?(?:claude\.(?:ai|com)|cursor\.com)/\S", re.IGNORECASE
+        r"https?://(?:www\.)?(?:claude\.(?:ai|com)|cursor\.com)/\S"
+        r"|https?://(?:www\.)?chatgpt\.com/(?:codex|s|c)/\S",
+        re.IGNORECASE,
     ),
 }
 ZERO_OID = re.compile(r"^0+$")
