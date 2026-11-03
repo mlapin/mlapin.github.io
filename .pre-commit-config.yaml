@@ -1,0 +1,56 @@
+minimum_pre_commit_version: "3.2.0"
+# Install once per clone:  pre-commit install
+# (installs every hook type listed below; see AGENTS.md)
+#
+# The attribution strip runs at prepare-commit-msg on purpose: `git commit --no-verify`
+# skips pre-commit and commit-msg but not prepare-commit-msg, so a tool that commits with
+# hooks disabled still loses its trailer. The commit-msg and pre-push checks refuse
+# whatever the strip misses, and CI refuses it again on the pull request.
+default_install_hook_types: [pre-commit, prepare-commit-msg, commit-msg, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      - id: detect-private-key
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Scans staged changes for secrets. GitHub push protection also runs server-side, but
+  # it only knows partner token formats; gitleaks also catches generic credentials.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: strip-attribution
+        name: Strip attribution from the commit message
+        entry: python3 .github/scripts/check_commit_messages.py --strip-message-file
+        language: system
+        always_run: true
+        stages: [prepare-commit-msg]
+      - id: commit-message-policy
+        name: Check commit message policy
+        entry: python3 .github/scripts/check_commit_messages.py --message-file
+        language: system
+        always_run: true
+        stages: [commit-msg]
+      - id: pushed-commit-message-policy
+        name: Check pushed commit message policy
+        entry: python3 .github/scripts/check_commit_messages.py --pre-push
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

@@ -1,0 +1,15 @@
+# Links that are fine in a browser but reject automated checkers.
+# One regex per line, matched against the full URL.
+
+# Saarland University repository (PhD thesis): returns 403 to bots
+^https://publikationen\.sulb\.uni-saarland\.de/
+
+# ACM Digital Library (and DOIs that redirect to it): 403 from CI runners
+^https://doi\.org/10\.1145/
+^https://dl\.acm\.org/
+
+# X / Twitter: 403 to unauthenticated requests
+^https://(www\.)?(x|twitter)\.com/
+
+# Google Scholar: rate-limits CI runners (intermittent 403/429)
+^https://scholar\.google\.com/
