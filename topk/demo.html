@@ -179,13 +179,13 @@
   <div class="panels" id="land">
     <div class="panel" data-id="A">
       <div class="panel-head"><span class="tag" style="background:var(--pa)">A</span><span class="lname"></span></div>
-      <canvas class="land" aria-label="Loss landscape for model A"></canvas>
+      <canvas class="land" role="img" aria-label="Loss landscape for model A"></canvas>
       <div class="stats"></div>
       <div class="push"></div>
     </div>
     <div class="panel" data-id="B">
       <div class="panel-head"><span class="tag" style="background:var(--pb)">B</span><span class="lname"></span></div>
-      <canvas class="land" aria-label="Loss landscape for model B"></canvas>
+      <canvas class="land" role="img" aria-label="Loss landscape for model B"></canvas>
       <div class="stats"></div>
       <div class="push"></div>
     </div>
@@ -215,7 +215,7 @@
     perfect classifier cannot always be right on top-1. A top-2 guess can be.
   </p>
   <div class="data-grid">
-    <canvas id="data" aria-label="The data: training points on the circle, colored by label, and the label mix of each segment"></canvas>
+    <canvas id="data" role="img" aria-label="The data: training points on the circle, colored by label, and the label mix of each segment"></canvas>
     <div>
       <table class="results data-table">
         <thead><tr><th>Segment</th><th>Arc</th><th>Labels</th><th>Best top-2 guess</th></tr></thead>
@@ -256,7 +256,7 @@
       <div class="panel-head"><span class="tag" style="background:#888">?</span><span>Your arrows</span>
         <span class="grow" style="flex:1"></span><button class="btn" id="sandReset" type="button">Reset</button></div>
       <div class="layers" role="group" aria-label="Layers"></div>
-      <canvas class="sq" aria-label="Your arrows on the circle: true labels, first guess shading, second guess stripes"></canvas>
+      <canvas class="sq" role="img" aria-label="Your arrows on the circle: true labels, first guess shading, second guess stripes"></canvas>
       <div class="stats"></div>
       <div class="readout" id="sandReadout" aria-live="off"></div>
     </div>
@@ -303,15 +303,15 @@
   <div class="panels" id="circ">
     <div class="panel" data-id="A">
       <div class="panel-head"><span class="tag" style="background:var(--pa)">A</span><span class="lname"></span></div>
-      <canvas class="sq" aria-label="Model A on the circle: weight arrows, true labels, first and second guesses"></canvas>
-      <canvas class="strip" aria-label="Model A unrolled: true labels, training points, class scores, guesses"></canvas>
+      <canvas class="sq" role="img" aria-label="Model A on the circle: weight arrows, true labels, first and second guesses"></canvas>
+      <canvas class="strip" role="img" aria-label="Model A unrolled: true labels, training points, class scores, guesses"></canvas>
       <div class="stats"></div>
       <div class="note"></div>
     </div>
     <div class="panel" data-id="B">
       <div class="panel-head"><span class="tag" style="background:var(--pb)">B</span><span class="lname"></span></div>
-      <canvas class="sq" aria-label="Model B on the circle: weight arrows, true labels, first and second guesses"></canvas>
-      <canvas class="strip" aria-label="Model B unrolled: true labels, training points, class scores, guesses"></canvas>
+      <canvas class="sq" role="img" aria-label="Model B on the circle: weight arrows, true labels, first and second guesses"></canvas>
+      <canvas class="strip" role="img" aria-label="Model B unrolled: true labels, training points, class scores, guesses"></canvas>
       <div class="stats"></div>
       <div class="note"></div>
     </div>
@@ -323,7 +323,7 @@
   </p>
 
   <div class="card">
-    <canvas id="chart" aria-label="Accuracy during training"></canvas>
+    <canvas id="chart" role="img" aria-label="Accuracy during training"></canvas>
     <div class="legend" role="group" aria-label="Accuracy chart legend">
       <span><i class="ln" style="border-color:var(--pa)"></i>A top-2</span>
       <span><i class="ln" style="border-color:var(--pa);border-top-style:dotted"></i>A top-1</span>
