@@ -15,8 +15,64 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Job names validate, attribution and hygiene are required status checks in the main ruleset.
 jobs:
-  validate: # job name is the required status check in the main ruleset
+  # Stdlib-only, so it reports in seconds and its verdict is never hidden behind another
+  # job's install or lint failure.
+  attribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # A pull request answers for every commit it introduces, so an older commit cannot
+      # ride in behind a clean tip. A push answers for what it introduced. A scheduled or
+      # manual run has no base and audits the whole history, which is also what an
+      # unreachable base (a rewritten ref) falls back to, so it fails closed.
+      - name: Check commit messages
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: >-
+          python3 .github/scripts/check_commit_messages.py
+          --base "${PR_BASE:-$PUSH_BASE}" --head "${{ github.event.pull_request.head.sha || github.sha }}"
+
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # Whole tree, not just changed files, so a latent violation surfaces on the PR that
+      # can still fix it. The gitleaks hook only sees staged changes, so CI skips it and
+      # scans the full history below instead.
+      - name: File hygiene hooks
+        env:
+          SKIP: gitleaks
+        run: pipx run pre-commit==4.7.0 run --all-files --show-diff-on-failure
+
+      - name: Scan git history for secrets
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        working-directory: ${{ runner.temp }}
+        run: |
+          base=https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}
+          tarball=gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
+          curl -fsSLO "$base/$tarball"
+          curl -fsSL "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | grep " $tarball\$" | sha256sum -c -
+          tar xzf "$tarball" gitleaks
+          ./gitleaks git --redact --verbose "$GITHUB_WORKSPACE"
+
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -48,10 +104,10 @@ jobs:
           fi
 
   deploy:
-    # Only publish from main, and only after validation passes.
-    # The weekly link check runs validation alone so a dead external link never blocks or triggers a deploy.
+    # Only publish from main, and only after every check passes.
+    # The weekly run checks without deploying, so a dead external link never blocks or triggers a deploy.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: validate
+    needs: [attribution, hygiene, validate]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -67,11 +123,14 @@ jobs:
 
       - uses: actions/configure-pages@v6
 
-      # Dotfiles (.git, .github, .htmlvalidate.json, .lycheeignore, .nojekyll) are excluded by default.
-      # .nojekyll is not needed here: Actions deploys serve the artifact as-is, without Jekyll.
+      # Publish the site only: no dotfiles (.git, .github, tool configs, .nojekyll, which
+      # Actions deploys do not need) and no agent instructions.
+      - name: Stage site
+        run: rsync -a --exclude='.*' --exclude='AGENTS.md' ./ _site/
+
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: .
+          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v5
