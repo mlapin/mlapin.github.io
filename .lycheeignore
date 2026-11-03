@@ -1,0 +1,5 @@
+# Links that are fine in a browser but reject automated checkers.
+# One regex per line, matched against the full URL.
+
+# Saarland University repository (PhD thesis): returns 403 to bots
+^https://publikationen\.sulb\.uni-saarland\.de/

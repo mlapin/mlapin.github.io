@@ -1,0 +1,77 @@
+name: site
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, to catch external links that went dead
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate: # job name is the required status check in the main ruleset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Validate HTML
+        run: npx --yes html-validate@11.18.0 "**/*.html"
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          lycheeVersion: v0.24.2
+          args: >-
+            --no-progress --max-retries 3 --accept 200,206,429
+            --root-dir ${{ github.workspace }}
+            "**/*.html"
+          fail: true
+
+      - name: Guard against large files
+        run: |
+          big=$(find . -path ./.git -prune -o -type f -size +5M -print)
+          if [ -n "$big" ]; then
+            echo "::error::Files over 5 MB (GitHub Pages sites should stay small):"
+            echo "$big"
+            exit 1
+          fi
+
+  deploy:
+    # Only publish from main, and only after validation passes.
+    # The weekly link check runs validation alone so a dead external link never blocks or triggers a deploy.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v6
+
+      # Dotfiles (.git, .github, .htmlvalidate.json, .lycheeignore, .nojekyll) are excluded by default.
+      # .nojekyll is not needed here: Actions deploys serve the artifact as-is, without Jekyll.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
