@@ -10,3 +10,6 @@
 
 # X / Twitter: 403 to unauthenticated requests
 ^https://(www\.)?(x|twitter)\.com/
+
+# Google Scholar: rate-limits CI runners (intermittent 403/429)
+^https://scholar\.google\.com/
