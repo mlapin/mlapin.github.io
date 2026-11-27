@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>libsdca</title>
+  <title>libsdca: Accurate and Fast Classification Losses for SDCA and Neural Networks</title>
   <meta name="author" content="Max Lapin">
-  <meta name="description" content="libsdca: multiclass and multilabel classification with stochastic dual coordinate ascent, including the top-k SVM and top-k entropy losses. C++11 headers and MATLAB interface, MIT license.">
-  <meta property="og:title" content="libsdca">
-  <meta property="og:description" content="Multiclass and multilabel training with stochastic dual coordinate ascent, including top-k losses.">
+  <meta name="description" content="libsdca: accurate and fast classification losses for SDCA and neural networks. Multiclass, top-k, multilabel, and distillation losses as fused PyTorch and JAX loss layers and as objectives of an SDCA solver for linear and kernel models. MIT license.">
+  <meta property="og:title" content="libsdca: Accurate and Fast Classification Losses for SDCA and Neural Networks">
+  <meta property="og:description" content="Numerically accurate and fast classification losses: fused loss layers for PyTorch and JAX, and an SDCA solver for linear and kernel models.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:creator" content="@mlapin_">
   <link rel="icon" type="image/png" href="../images/favicon.png">
@@ -15,132 +15,155 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../stylesheet.css">
+  <link rel="stylesheet" href="figure1.css">
   <style>
     .back { font-size: 14px; }
-    .status { background: var(--highlight); padding: 10px 14px; margin: 16px 0; }
-    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
-    .cols h3 { font-size: 15px; margin: 14px 0 4px; }
-    .cols ul { margin: 0; padding-left: 20px; }
-    .cols li { margin: 3px 0; }
+    .takeaways { padding-left: 20px; }
+    .takeaways li { margin: 8px 0; }
     pre {
       background: var(--thumb-bg); padding: 10px 12px; overflow-x: auto; font-size: 13px; border-radius: 4px;
-      line-height: 1.45;
+      line-height: 1.45; margin: 8px 0 14px;
     }
     code { font-size: 0.92em; }
-    .refs { font-size: 14px; padding-left: 20px; }
-    .refs li { margin: 4px 0; }
-    @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+    /* Python tokens in the colors of the report's code listings */
+    pre.code-listing code { font-size: inherit; }
+    pre.code-listing :is(.c, .c1, .cm, .ch, .cs, .cp) { color: #737982; }
+    pre.code-listing :is(.k, .kn, .kd, .kr, .kc, .kt, .ow) { color: #1a5fb4; }
+    pre.code-listing :is(.s, .s1, .s2, .sa, .sb, .sc, .sd, .se, .sh, .si, .sx) { color: #2b7550; }
+    pre.code-listing :is(.m, .mi, .mf, .mh, .mo, .mb, .il) { color: #9a5a12; }
+    pre.code-listing :is(.nf, .nc, .nd, .nb, .fm) { color: #7a3e9d; }
+    /* The panels of Figure 1 of the report, interactive, each within the text column */
+    figure.teaser { margin: 26px 0 30px; }
+    figure.teaser figcaption { margin-top: 12px; }
+    figure.teaser noscript img { display: block; width: 100%; height: auto; }
+    @media (min-width: 641px) { figure.teaser figcaption { text-align: justify; hyphens: auto; } }
   </style>
 </head>
 
 <body>
 <div class="page project">
 
-  <a class="back" href="../index.html">&larr; Max Lapin</a>
+  <a class="back" href="/">&larr; Max Lapin</a>
   <header class="project-head">
     <h1>libsdca</h1>
-    <p class="subtitle">Multiclass and multilabel classification with stochastic dual coordinate ascent.</p>
+    <p class="subtitle">Accurate and Fast Classification Losses for SDCA and Neural Networks</p>
     <nav class="pills" aria-label="Related links">
+      <a href="/libsdca/report/">Technical report</a>
       <a href="https://github.com/mlapin/libsdca">GitHub</a>
-      <a href="https://github.com/mlapin/libsdca/releases">Releases</a>
+      <a href="https://pypi.org/project/libsdca/">PyPI</a>
+      <a href="https://crates.io/crates/libsdca">crates.io</a>
       <a href="../topk/demo.html">Losses demo</a>
       <a href="../topk/simplex.html">Simplex demo</a>
       <a href="#cite">Cite</a>
     </nav>
   </header>
 
-  <div class="status">
-    <strong>A new release is on the way</strong>, with numerical fixes and performance improvements. The latest
-    tagged release, <a href="https://github.com/mlapin/libsdca/releases/tag/v0.2.0">v0.2.0</a>, dates from December 2015.
-  </div>
-
   <div class="prose">
     <p>
-      libsdca trains linear and kernel classifiers with the losses from my PhD work on top-k error, along with the
-      standard multiclass and multilabel ones. It is a header-only C++11 library with a MATLAB interface, and it is
-      the reference implementation of the top-k SVM (<a href="#ref-lhs15">NeurIPS 2015</a>) and the top-k entropy loss
-      (<a href="#ref-lhs16">CVPR 2016</a>).
+      libsdca is an open-source library of classification losses. It provides them as loss layers for neural
+      networks in PyTorch and JAX, and as objectives of a stochastic dual coordinate ascent (SDCA) solver for linear
+      and kernel classifiers on fixed features. The losses are numerically accurate and fast.
+      libsdca is also the reference implementation of the top-<i>k</i> SVM and top-<i>k</i> entropy losses
+      (<a href="https://arxiv.org/abs/1511.06683">NeurIPS 2015</a>,
+      <a href="https://arxiv.org/abs/1512.00486">CVPR 2016</a>,
+      <a href="https://arxiv.org/abs/1612.03663">TPAMI 2018</a>).
     </p>
 
-    <h2>Why SDCA</h2>
     <p>
-      Stochastic dual coordinate ascent (<a href="#ref-ssz13">Shalev-Shwartz and Zhang, 2013</a>, <a href="#ref-ssz16">2016</a>) works
-      on the dual problem, one training example at a time. For these losses
-      each step reduces to a small proximal problem, usually a projection onto a simplex-like set, and libsdca solves it
-      exactly. The dual objective also gives a duality gap, a certificate of how far the current model is from the
-      optimum, so you know when training is actually done instead of guessing from a learning curve.
+      The two figures below show the speed of libsdca 0.4 in training on a GPU against the compiled losses of
+      PyTorch and JAX. They are interactive and come from the <a href="/libsdca/report/#figure-1">technical
+      report</a>, which also covers the numerical accuracy, the SDCA solver, and the limitations.
     </p>
 
-    <h2>What's inside</h2>
-    <div class="cols">
-      <div>
-        <h3>Multiclass losses</h3>
-        <ul>
-          <li>Multiclass SVM (<a href="#ref-cs01">Crammer and Singer, 2001</a>), plain and smoothed
-            (<a href="#ref-lhs16">Lapin et al., 2016</a>)</li>
-          <li>Top-k SVM, both &alpha; and &beta; versions (<a href="#ref-lhs15">Lapin et al., 2015</a>), plain and smoothed
-            (<a href="#ref-lhs16">2016</a>)</li>
-          <li>Softmax (cross-entropy)</li>
-          <li>Top-k entropy (<a href="#ref-lhs16">Lapin et al., 2016</a>)</li>
-        </ul>
-        <h3>Multilabel losses</h3>
-        <ul>
-          <li>Multilabel SVM (<a href="#ref-cs03">Crammer and Singer, 2003</a>), plain and smoothed (<a href="#ref-lhs18">Lapin et al., 2018</a>)</li>
-          <li>Multilabel cross-entropy (<a href="#ref-lhs18">Lapin et al., 2018</a>)</li>
-        </ul>
+    <figure class="teaser libsdca-figure">
+      <div class="chart-mount" id="chart-teaser-a">
+        <noscript><img src="../images/libsdca-figure1a.png" alt="Time per logit of cross-entropy against the number of logits for libsdca and torch.compile. libsdca is faster on small inputs and reaches the memory-bandwidth limit on large ones."></noscript>
       </div>
-      <div>
-        <h3>Proximal operators</h3>
-        <ul>
-          <li>Projections onto the simplex (<a href="#ref-kiw08">Kiwiel, 2008</a>),
-            <a href="../topk/simplex.html">top-k simplex</a>, and top-k cone
-            (<a href="#ref-lhs15">Lapin et al., 2015</a>)</li>
-          <li>Entropic projections (<a href="#ref-lhs16">Lapin et al., 2016</a>, <a href="#ref-lhs18">2018</a>)</li>
-          <li>Lambert W function of an exponential, <code>W(exp(x))</code>
-            (<a href="#ref-cor96">Corless et al., 1996</a>)</li>
-        </ul>
-        <h3>Inputs and interfaces</h3>
-        <ul>
-          <li>Features or precomputed kernels, in float or double</li>
-          <li>Several datasets at once, e.g. to track a validation set</li>
-          <li>C++11 headers: nothing to build except a BLAS for the solver</li>
-          <li>MATLAB: <code>matsdca_fit</code> and <code>matsdca_prox</code></li>
-        </ul>
+      <figcaption>
+        <strong>Fast at every input size.</strong> The time per logit of cross-entropy falls with the size of
+        the input until it reaches the memory-bandwidth limit, the time to read the logits twice and write the
+        gradient once. On small inputs, libsdca is about twice as fast as compiled PyTorch.
+      </figcaption>
+    </figure>
+
+    <figure class="teaser libsdca-figure">
+      <div class="chart-mount" id="chart-teaser-b">
+        <noscript><img src="../images/libsdca-figure1b.png" alt="Time per logit of every libsdca loss and of its compiled baseline on 4096 by 32,000 logits in training on a GPU. libsdca is as fast or faster than the built-in losses and several times faster than the compositions of tensor operations."></noscript>
       </div>
-    </div>
-    <p>
-      For the nonconvex truncated top-k entropy loss, see <code>libsdca_gd</code> in
-      <a href="https://github.com/mlapin/libsdca/releases/tag/v0.2.0">v0.2.0</a>.
-    </p>
+      <figcaption>
+        <strong>Fast on every loss.</strong> Each row is one loss on 4096 &times; 32,000 logits, with the time
+        per logit of libsdca and of its compiled baseline: a built-in loss of PyTorch or JAX (dot) or, where
+        there is none, a composition of tensor operations (ring). Hover a point for its times and speedup.
+      </figcaption>
+    </figure>
 
-    <h2>Install</h2>
-    <p>
-      From C++, add <code>include/</code> to your include path and link a BLAS if you use the solver. The MATLAB
-      interface is two MEX files, built into <code>matlab/</code> with CMake on Linux or macOS:
-    </p>
-<pre>git clone https://github.com/mlapin/libsdca.git
-cd libsdca &amp;&amp; mkdir build &amp;&amp; cd build
-cmake .. &amp;&amp; make install -j4</pre>
-    <p>or from MATLAB itself:</p>
-<pre>run matlab/make.m
-addpath matlab</pre>
+    <h2 id="facts">At a glance</h2>
+    <ul class="takeaways">
+      <li><strong>Losses.</strong> Cross-entropy with the options of <code>torch.nn.CrossEntropyLoss</code>, the
+        multiclass hinge, top-<i>k</i> cross-entropy and top-<i>k</i> hinges, multilabel cross-entropy and hinge,
+        knowledge distillation, and proximal losses.</li>
+      <li><strong>Loss layers.</strong> Each loss is one fused kernel for CUDA and for the CPU. It reads the logits
+        and writes the loss and its gradient without intermediate arrays. PyTorch and JAX share the same
+        kernels.</li>
+      <li><strong>Solver.</strong> The SDCA solver trains linear and kernel models. It reports a fit as
+        <code>solved</code> only when the duality gap confirms the requested tolerance.</li>
+      <li><strong>Interfaces.</strong> PyTorch, JAX with the signatures of Optax, NumPy, scikit-learn, Rust,
+        C++11, and C.</li>
+      <li><strong>Formats.</strong> Logits in fp16, bf16, fp32, and fp64.</li>
+      <li><strong>Release and license.</strong> Version 0.4, November 27, 2026, MIT license.</li>
+    </ul>
 
-    <h2>Quick start</h2>
-<pre>model = matsdca_fit(X, Y, opts);   % train
-matsdca_fit('help')                % list objectives and options
-matsdca_prox('help', 'prox')       % list proximal operators</pre>
-    <p>A complete example is in <code>matlab/demo.m</code>.</p>
-
-    <h2>See it in action</h2>
+    <h2 id="results">What the report covers</h2>
     <p>
-      The <a href="../topk/demo.html">losses demo</a> trains softmax, multiclass SVM, top-k SVM, and top-k entropy
-      side by side in your browser on the synthetic problem from the CVPR 2016 paper. The
-      <a href="../topk/simplex.html">simplex demo</a> runs the projection onto the top-k simplex that the top-k SVM
-      update relies on. Both are JavaScript reimplementations rather than libsdca itself, but the math is the same.
+      The <a href="/libsdca/report/">technical report</a> gives the definitions, numerical methods, kernel
+      design, benchmarks, and limitations.
     </p>
+    <ul class="takeaways">
+      <li><strong>Numerical accuracy.</strong> Standard cross-entropy rounds the gradients of confident
+        predictions to zero. libsdca keeps them correct at 4&ndash;8 times larger margins, and the report tests
+        every loss against 100-digit references (<a href="/libsdca/report/#numerics">Section 2</a>).</li>
+      <li><strong>Runtime and memory.</strong> The loss layers are benchmarked on a GPU and on a CPU against eager
+        PyTorch, <code>torch.compile</code>, <code>jax.jit</code>, and Liger-Kernel, and libsdca is faster in
+        most comparisons. The SDCA solver fits multiclass SVMs up to 20 times faster than LIBLINEAR
+        (<a href="/libsdca/report/#performance">Section 3</a>).</li>
+      <li><strong>Training.</strong> Accurate losses remove the loss spikes of standard cross-entropy at high
+        confidence and the drift of standard distillation, and a multiclass hinge groks modular arithmetic at
+        margins near one (<a href="/libsdca/report/#experiments">Section 4</a>).</li>
+      <li><strong>Appendices.</strong> The derivation of every loss in one form, the numerical problems and their
+        fixes with the known limits, the benchmark protocol and results, and the full training experiments.</li>
+    </ul>
+
+    <span id="install"></span>
+    <h2 id="quickstart">Quick start</h2>
+<pre>pip install 'libsdca[sklearn,torch,jax]'    # wheels for Linux x86-64, macOS arm64
+cargo add libsdca                           # Rust crate</pre>
+<pre class="code-listing"><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span><span class="o">,</span><span class="w"> </span><span class="nn">libsdca</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">libsdca.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossEntropyLoss</span><span class="p">,</span> <span class="n">TopKCrossEntropyLoss</span>
+
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">CrossEntropyLoss</span><span class="p">()</span>              <span class="c1"># drop-in for nn.CrossEntropyLoss</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+<span class="n">top5</span> <span class="o">=</span> <span class="n">TopKCrossEntropyLoss</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>            <span class="c1"># or TopKHingeLoss(k=5, gamma=1.0)</span>
+
+<span class="c1"># SDCA solver: stops at a relative duality gap of 1e-4</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">libsdca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">libsdca</span><span class="o">.</span><span class="n">MulticlassHinge</span><span class="p">(),</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span></code></pre>
+
+    <h2 id="references">References</h2>
+    <ul class="takeaways">
+      <li><a href="https://github.com/mlapin/libsdca">GitHub repository</a>: source and documentation, starting
+        with the <a href="https://github.com/mlapin/libsdca/blob/master/docs/API.md">API reference</a>.</li>
+      <li>Packages: <a href="https://pypi.org/project/libsdca/">PyPI</a> and
+        <a href="https://crates.io/crates/libsdca">crates.io</a>.</li>
+      <li>Papers on the top-<i>k</i> losses: <a href="https://arxiv.org/abs/1511.06683">NeurIPS 2015</a>,
+        <a href="https://arxiv.org/abs/1512.00486">CVPR 2016</a>, and
+        <a href="https://arxiv.org/abs/1612.03663">TPAMI 2018</a>.</li>
+      <li>Interactive demos: <a href="../topk/demo.html">how top-<i>k</i> losses train a linear model</a> and
+        <a href="../topk/simplex.html">the projection onto the top-<i>k</i> simplex</a>.</li>
+    </ul>
 
     <h2 id="cite">Cite</h2>
-    <p>If libsdca helps your research, please cite the paper for the losses you use.</p>
+    <p>If libsdca helps your research, please cite the paper for the losses you use and the technical report:</p>
 <pre>@inproceedings{lapin2015topk,
   title     = {Top-k Multiclass {SVM}},
   author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
@@ -153,9 +176,9 @@ matsdca_prox('help', 'prox')       % list proximal operators</pre>
   author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
   booktitle = {CVPR},
   year      = {2016}
-}</pre>
-    <p>The journal version adds the multilabel losses and the calibration analysis:</p>
-<pre>@article{lapin2018analysis,
+}
+
+@article{lapin2018analysis,
   title   = {Analysis and Optimization of Loss Functions for Multiclass, Top-k, and Multilabel Classification},
   author  = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
   journal = {IEEE TPAMI},
@@ -163,39 +186,19 @@ matsdca_prox('help', 'prox')       % list proximal operators</pre>
   number  = {7},
   pages   = {1533--1554},
   year    = {2018}
-}</pre>
+}
 
-    <h2 id="references">References</h2>
-    <ul class="refs">
-      <li id="ref-cor96">R. M. Corless, G. H. Gonnet, D. E. G. Hare, D. J. Jeffrey, and D. E. Knuth.
-        <a href="https://doi.org/10.1007/BF02124750">On the Lambert W function</a>. <i>Advances in Computational
-        Mathematics</i>, 5:329&ndash;359, 1996.</li>
-      <li id="ref-cs01">K. Crammer and Y. Singer.
-        <a href="https://www.jmlr.org/papers/v2/crammer01a.html">On the algorithmic implementation of multiclass
-        kernel-based vector machines</a>. <i>JMLR</i>, 2:265&ndash;292, 2001.</li>
-      <li id="ref-cs03">K. Crammer and Y. Singer.
-        <a href="https://www.jmlr.org/papers/v3/crammer03b.html">A family of additive online algorithms for category
-        ranking</a>. <i>JMLR</i>, 3:1025&ndash;1058, 2003.</li>
-      <li id="ref-kiw08">K. C. Kiwiel. <a href="https://doi.org/10.1007/s10957-007-9317-7">Variable fixing algorithms
-        for the continuous quadratic knapsack problem</a>. <i>Journal of Optimization Theory and Applications</i>,
-        136(3):445&ndash;458, 2008.</li>
-      <li id="ref-lhs15">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1511.06683">Top-k
-        multiclass SVM</a>. In <i>NeurIPS</i>, 2015.</li>
-      <li id="ref-lhs16">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1512.00486">Loss
-        functions for top-k error: Analysis and insights</a>. In <i>CVPR</i>, 2016.</li>
-      <li id="ref-lhs18">M. Lapin, M. Hein, and B. Schiele. <a href="https://arxiv.org/abs/1612.03663">Analysis and
-        optimization of loss functions for multiclass, top-k, and multilabel classification</a>. <i>IEEE TPAMI</i>,
-        40(7):1533&ndash;1554, 2018.</li>
-      <li id="ref-ssz13">S. Shalev-Shwartz and T. Zhang.
-        <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html">Stochastic dual coordinate ascent methods
-        for regularized loss minimization</a>. <i>JMLR</i>, 14:567&ndash;599, 2013.</li>
-      <li id="ref-ssz16">S. Shalev-Shwartz and T. Zhang. <a href="https://doi.org/10.1007/s10107-014-0839-0">Accelerated
-        proximal stochastic dual coordinate ascent for regularized loss minimization</a>. <i>Mathematical
-        Programming</i>, 155:105&ndash;145, 2016.</li>
-    </ul>
+@misc{lapin2026libsdca,
+  title        = {libsdca: Accurate and Fast Classification Losses for {SDCA} and Neural Networks},
+  author       = {Lapin, Maksim},
+  year         = {2026},
+  howpublished = {Technical report, \url{https://mlapin.github.io/libsdca/report/}}
+}</pre>
   </div>
 
   <footer>MIT license. Page design from <a href="https://github.com/jonbarron/jonbarron.github.io">Jon Barron's website</a>.</footer>
 </div>
+<div id="chart-tooltip" class="chart-tooltip" hidden></div>
+<script src="figure1.js"></script>
 </body>
 </html>
