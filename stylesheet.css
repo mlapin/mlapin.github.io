@@ -149,8 +149,6 @@ section { scroll-margin-top: 12px; }
 .entry .links { margin-top: 2px; }
 .entry .links .sep { color: var(--muted); padding: 0 4px; }
 .entry p { margin: 8px 0 0; }
-.entry .outcome { margin-top: 4px; }
-.entry .outcome em { color: var(--muted); }
 .entry > div, .intro > div { min-width: 0; }
 
 /* ---------- thumbnails ----------
