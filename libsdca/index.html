@@ -63,10 +63,7 @@
       libsdca is an open-source library of classification losses. It provides them as loss layers for neural
       networks in PyTorch and JAX, and as objectives of a stochastic dual coordinate ascent (SDCA) solver for linear
       and kernel classifiers on fixed features. The losses are numerically accurate and fast.
-      libsdca is also the reference implementation of the top-<i>k</i> SVM and top-<i>k</i> entropy losses
-      (<a href="https://arxiv.org/abs/1511.06683">NeurIPS 2015</a>,
-      <a href="https://arxiv.org/abs/1512.00486">CVPR 2016</a>,
-      <a href="https://arxiv.org/abs/1612.03663">TPAMI 2018</a>).
+      libsdca is also the reference implementation of the top-<i>k</i> SVM and top-<i>k</i> entropy losses.
     </p>
 
     <p>
@@ -88,7 +85,7 @@
 
     <figure class="teaser libsdca-figure">
       <div class="chart-mount" id="chart-teaser-b">
-        <noscript><img src="../images/libsdca-figure1b.png" alt="Time per logit of every libsdca loss and of its compiled baseline on 4096 by 32,000 logits in training on a GPU. libsdca is as fast or faster than the built-in losses and several times faster than the compositions of tensor operations."></noscript>
+        <noscript><img src="../images/libsdca-figure1b.png" alt="Time per logit of every libsdca loss and of its compiled baseline on 4096 by 32,000 logits in training on a GPU. libsdca is faster than most built-in losses and than every composition of tensor operations."></noscript>
       </div>
       <figcaption>
         <strong>Fast on every loss.</strong> Each row is one loss on 4096 &times; 32,000 logits, with the time
@@ -107,8 +104,7 @@
         kernels.</li>
       <li><strong>Solver.</strong> The SDCA solver trains linear and kernel models. It reports a fit as
         <code>solved</code> only when the duality gap confirms the requested tolerance.</li>
-      <li><strong>Interfaces.</strong> PyTorch, JAX with the signatures of Optax, NumPy, scikit-learn, Rust,
-        C++11, and C.</li>
+      <li><strong>Interfaces.</strong> PyTorch, JAX, NumPy, scikit-learn, Rust, C++11, and C.</li>
       <li><strong>Formats.</strong> Logits in fp16, bf16, fp32, and fp64.</li>
       <li><strong>Release and license.</strong> Version 0.4, November 27, 2026, MIT license.</li>
     </ul>
@@ -163,29 +159,30 @@ cargo add libsdca                           # Rust crate</pre>
     </ul>
 
     <h2 id="cite">Cite</h2>
-    <p>If libsdca helps your research, please cite the paper for the losses you use and the technical report:</p>
-<pre>@inproceedings{lapin2015topk,
+    <p>If libsdca is useful in your research, please cite the TPAMI paper; the earlier papers introduce the
+      top-<i>k</i> losses, and the technical report describes the library:</p>
+<pre>@article{lapin2018analysis,
+  title     = {Analysis and Optimization of Loss Functions for Multiclass, Top-k, and Multilabel Classification},
+  author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
+  journal   = {IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI)},
+  volume    = {40},
+  number    = {7},
+  pages     = {1533--1554},
+  year      = {2018}
+}
+
+@inproceedings{lapin2015topk,
   title     = {Top-k Multiclass {SVM}},
   author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
-  booktitle = {NeurIPS},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
   year      = {2015}
 }
 
 @inproceedings{lapin2016loss,
   title     = {Loss Functions for Top-k Error: Analysis and Insights},
   author    = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
-  booktitle = {CVPR},
+  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
   year      = {2016}
-}
-
-@article{lapin2018analysis,
-  title   = {Analysis and Optimization of Loss Functions for Multiclass, Top-k, and Multilabel Classification},
-  author  = {Lapin, Maksim and Hein, Matthias and Schiele, Bernt},
-  journal = {IEEE TPAMI},
-  volume  = {40},
-  number  = {7},
-  pages   = {1533--1554},
-  year    = {2018}
 }
 
 @misc{lapin2026libsdca,

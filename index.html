@@ -80,9 +80,9 @@
       <span class="gloss">Open text-to-image models</span>
     </a>
     <a class="card" href="/libsdca/">
-      <span class="thumb">libsdca<img class="contain" src="images/libsdca-thumb.png" alt="" loading="lazy" onerror="this.remove()"></span>
+      <span class="thumb">libsdca<picture><source media="(prefers-reduced-motion: reduce)" srcset="images/libsdca-thumb_4x3_still.svg"><img src="images/libsdca-thumb_4x3.svg" alt="" loading="lazy" onerror="this.remove()"></picture></span>
       <span class="card-title">libsdca</span>
-      <span class="gloss">Accurate, fast loss layers</span>
+      <span class="gloss">Accurate, fast losses for PyTorch and JAX</span>
     </a>
   </section>
 
@@ -101,8 +101,8 @@
   <section id="news">
     <h2>News</h2>
     <ul class="news">
-      <li><span class="date">Nov 2026</span><span><a href="/libsdca/">libsdca v0.4</a>: accurate and fast classification
-        losses for SDCA and neural networks, with a <a href="/libsdca/report/">technical report</a>.</span></li>
+      <li><span class="date">Nov 2026</span><span><a href="/libsdca/">libsdca 0.4</a>: accurate and fast classification
+        losses; details in the <a href="/libsdca/report/">technical report</a>.</span></li>
       <li><span class="date">Oct 2026</span><span>We released a research preview of
         <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1</a>, Reka's 19B
         omni model trained from scratch.</span></li>
@@ -390,7 +390,7 @@
         </div>
       </article>
 
-      <article class="entry highlight">
+      <article class="entry">
         <div class="thumb">
           SVM+
           <img src="images/svmplus.jpg" alt="Weighted SVM replicating an SVM+ solution" loading="lazy" onerror="this.remove()">
@@ -437,13 +437,13 @@
   <section id="open-source">
     <h2>Open Source</h2>
     <div class="entries">
-      <article class="entry">
+      <article class="entry highlight">
         <div class="thumb">
           libsdca
-          <img class="contain" src="images/libsdca-thumb.png" alt="Time per logit of cross-entropy against the number of logits on a GPU: libsdca is faster than compiled PyTorch on small inputs and reaches the memory-bandwidth limit on large ones" loading="lazy" onerror="this.remove()">
+          <picture><source media="(max-width: 640px) and (prefers-reduced-motion: reduce)" srcset="images/libsdca-thumb_16x9_still.svg"><source media="(prefers-reduced-motion: reduce)" srcset="images/libsdca-thumb_still.svg"><source media="(max-width: 640px)" srcset="images/libsdca-thumb_16x9.svg"><img class="contain" src="images/libsdca-thumb.svg" alt="A loss and a negated regularizer with a pair of parallel tangents: the tangents settle at the optimum, where the distance between them equals the smallest distance between the two curves" loading="lazy" onerror="this.remove()"></picture>
         </div>
         <div>
-          <a class="title" href="/libsdca/">libsdca</a>
+          <a class="title" href="/libsdca/">libsdca: Accurate and Fast Classification Losses for SDCA and Neural Networks</a>
           <div><span class="venue">Python / PyTorch / JAX / Rust / C++11 / C</span>, MIT license</div>
           <div class="links">
             <a href="/libsdca/">project page</a><span class="sep">/</span>
@@ -453,12 +453,11 @@
             <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
           </div>
           <p>
-            Accurate and fast classification losses for SDCA and neural networks: multiclass, top-k, multilabel, and
-            distillation losses as fused PyTorch and JAX loss layers and as
-            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">SDCA</a> solvers
-            for linear and kernel models. libsdca is the reference implementation of the top-k SVM and top-k entropy
-            losses. Release v0.4 has Python, PyTorch, JAX, Rust, C++, and C interfaces, fused CPU and CUDA kernels,
-            and a duality-gap stopping test for every fit.
+            Cross-entropy, hinge, top-k, multilabel, and distillation losses as fused GPU and CPU kernels for PyTorch
+            and JAX. Cross-entropy is a drop-in replacement for the built-in loss with correct gradients at larger
+            margins. The library also has an
+            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">SDCA</a> solver
+            for linear and kernel models and is the reference implementation of our top-k losses.
           </p>
         </div>
       </article>
@@ -469,7 +468,7 @@
   <section id="industry">
     <h2>Industry Work</h2>
     <p class="section-intro">
-      Applied science and product work at Amazon.
+      Applied research at Amazon: relating recent computer vision models to practical problems.
     </p>
 
     <div class="entries">
@@ -486,10 +485,10 @@
             <a href="https://www.amazon.science/latest-news/the-surprisingly-subtle-challenge-of-automating-damage-detection">Amazon Science</a>
           </div>
           <p>
-            Catch damaged items before they ship. I led the science roadmap and built one of the deployed models,
-            which treats anomaly detection on RGB-D images as retrieval.
+            Damage is rare and takes many forms, so labeled examples are scarce. I led the science roadmap and
+            developed one of the models, which casts anomaly detection as retrieval against RGB-D reference
+            images. A beta version was deployed in fulfillment centers for testing.
           </p>
-          <div class="outcome"><em>Outcome:</em> high detection recall with few false positives.</div>
         </div>
       </article>
 
@@ -505,9 +504,10 @@
             <a href="https://www.amazon.science/latest-news/how-amazon-robotics-is-working-on-new-ways-to-eliminate-the-need-for-barcodes">Amazon Science</a>
           </div>
           <p>
-            Recognize a product without scanning its barcode. I contributed to the multimodal RGB-D embedding model.
+            Identify a product from its appearance and dimensions, not its barcode. This is fine-grained retrieval
+            over a changing catalog. I worked on the multimodal RGB-D embedding model that matches an item
+            against candidate products. The model was deployed in fulfillment centers.
           </p>
-          <div class="outcome"><em>Outcome:</em> deployed in fulfillment centers, with high recall and few false positives.</div>
         </div>
       </article>
 
@@ -523,10 +523,10 @@
             <a href="https://www.yahoo.com/entertainment/secret-amazon-feature-makes-easy-170000535.html">press</a>
           </div>
           <p>
-            Shop the room: products spotted in lifestyle photos link to matching items on Amazon. I designed and shipped
-            the visual-similarity model.
+            Products in lifestyle photos link to matching items in the catalog. This is retrieval across domains,
+            from a photo of a furnished room to a catalog image. I designed and trained the visual-similarity model,
+            which served the feature in production for several years.
           </p>
-          <div class="outcome"><em>Outcome:</em> launched across many marketplaces, substantially increasing product engagement.</div>
         </div>
       </article>
 
