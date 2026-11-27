@@ -13,3 +13,13 @@
 
 # Google Scholar: rate-limits CI runners (intermittent 403/429)
 ^https://scholar\.google\.com/
+
+# Publisher DOIs that return 403 to CI runners (Oxford Academic, Wiley, SIAM, now publishers)
+^https://doi\.org/10\.1093/
+^https://doi\.org/10\.1111/
+^https://doi\.org/10\.1137/
+^https://doi\.org/10\.1561/
+
+# This site's own absolute URLs (canonical links): new pages are not live until this pull request
+# deploys them; the pages themselves are checked through their relative links
+^https://mlapin\.github\.io/
