@@ -101,6 +101,8 @@
   <section id="news">
     <h2>News</h2>
     <ul class="news">
+      <li><span class="date">Nov 2026</span><span><a href="/libsdca/">libsdca v0.4</a>: accurate and fast classification
+        losses for SDCA and neural networks, with a <a href="/libsdca/report/">technical report</a>.</span></li>
       <li><span class="date">Oct 2026</span><span>We released a research preview of
         <a href="https://reka.ai/labs/research/rho-1-collapsing-the-multimodal-stack">Rho-1</a>, Reka's 19B
         omni model trained from scratch.</span></li>
@@ -290,7 +292,7 @@
           <div class="links">
             <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/loss-functions-for-top-k-error">project page</a><span class="sep">/</span>
             <a href="https://arxiv.org/abs/1612.03663">arXiv</a><span class="sep">/</span>
-            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="/libsdca/">code</a><span class="sep">/</span>
             <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a><span class="sep">/</span>
             <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
           </div>
@@ -314,7 +316,7 @@
           <div class="links">
             <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/loss-functions-for-top-k-error">project page</a><span class="sep">/</span>
             <a href="https://arxiv.org/abs/1512.00486">arXiv</a><span class="sep">/</span>
-            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="/libsdca/">code</a><span class="sep">/</span>
             <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a>
           </div>
           <p>
@@ -336,7 +338,7 @@
           <div class="links">
             <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/object-recognition-and-scene-understanding/top-k-multiclass-svm">project page</a><span class="sep">/</span>
             <a href="https://arxiv.org/abs/1511.06683">arXiv</a><span class="sep">/</span>
-            <a href="libsdca/index.html">code</a><span class="sep">/</span>
+            <a href="/libsdca/">code</a><span class="sep">/</span>
             <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
           </div>
           <p>
@@ -438,22 +440,25 @@
       <article class="entry">
         <div class="thumb">
           libsdca
-          <img class="contain" src="images/topk_demo_still.webp" alt="Top-k losses demo built on the libsdca losses" loading="lazy" onerror="this.remove()">
+          <img class="contain" src="images/libsdca-thumb.png" alt="Relative error of the cross-entropy gradient against the margin: PyTorch rounds the gradient to zero at small margins, libsdca stays accurate until the gradient underflows" loading="lazy" onerror="this.remove()">
         </div>
         <div>
-          <a class="title" href="libsdca/index.html">libsdca</a>
-          <div><span class="venue">C++11 / MATLAB</span>, MIT license</div>
+          <a class="title" href="/libsdca/">libsdca</a>
+          <div><span class="venue">Python / PyTorch / JAX / Rust / C++11 / C</span>, MIT license</div>
           <div class="links">
-            <a href="libsdca/index.html">project page</a><span class="sep">/</span>
+            <a href="/libsdca/">project page</a><span class="sep">/</span>
+            <a href="/libsdca/report/">technical report</a><span class="sep">/</span>
             <a href="https://github.com/mlapin/libsdca">GitHub</a><span class="sep">/</span>
             <a href="topk/demo.html" title="Interactive demo: how softmax and top-k losses train a linear model">losses demo</a><span class="sep">/</span>
             <a href="topk/simplex.html" title="Interactive demo: projection onto the top-k simplex">simplex demo</a>
           </div>
           <p>
-            Fast multiclass and multilabel training with
-            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">stochastic dual coordinate ascent</a>, and the reference
-            implementation of the top-k SVM and top-k entropy losses. A new release, with numerical fixes and
-            performance improvements, is on the way.
+            Accurate and fast classification losses for SDCA and neural networks: multiclass, top-k, multilabel, and
+            distillation losses as fused PyTorch and JAX loss layers and as
+            <a href="https://www.jmlr.org/papers/v14/shalev-shwartz13a.html" title="Shalev-Shwartz and Zhang, Stochastic Dual Coordinate Ascent Methods for Regularized Loss Minimization, JMLR 2013">SDCA</a> solvers
+            for linear and kernel models. libsdca is the reference implementation of the top-k SVM and top-k entropy
+            losses. Release v0.4 has Python, PyTorch, JAX, Rust, C++, and C interfaces, fused CPU and CUDA kernels,
+            and a duality-gap stopping test for every fit.
           </p>
         </div>
       </article>
@@ -550,7 +555,7 @@
         Thesis: <a href="https://publikationen.sulb.uni-saarland.de/handle/20.500.11880/26788"><em>Image
         Classification with Limited Training Data and Class Ambiguity</em></a>.
         Advisors: <a href="https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/people/bernt-schiele">Bernt Schiele</a>, <a href="https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/maschinelles-lernen/team/prof-dr-matthias-hein/">Matthias Hein</a>.<br>
-        <span class="what">Loss functions for top-k and multilabel classification; <a href="libsdca/index.html">libsdca</a>.</span>
+        <span class="what">Loss functions for top-k and multilabel classification; <a href="/libsdca/">libsdca</a>.</span>
       </dd>
       <dt>2009&ndash;2012</dt>
       <dd>
