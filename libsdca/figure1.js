@@ -746,7 +746,8 @@
             if (withKey) f.body.append(compositionKey());
             const c = el("div", { class: "chart-canvas" });
             f.body.append(c);
-            draw(c, fig, markSet(), state, Math.round(clamp((c.clientWidth || 420) * 0.7, 320, 400)));
+            /* data-height on the mount fixes the height (the homepage thumbnail) */
+            draw(c, fig, markSet(), state, +fig.mount.dataset.height || Math.round(clamp((c.clientWidth || 420) * 0.7, 320, 400)));
           }
           fig.rerender = render;
           render();
