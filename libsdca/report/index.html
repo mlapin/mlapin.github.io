@@ -107,6 +107,11 @@
     .toc-list ul a { padding: 2.5px 0 2.5px 22px; font-size: 12px; color: var(--muted); }
     .toc-list ul ul { margin-bottom: 2px; }
     .toc-list ul ul a { padding: 1.5px 0 1.5px 34px; font-size: 11.5px; }
+    /* Each appendix collapsed: its subsections show on hover, on focus, or while it is read */
+    .toc-list li.toc-appendix li.toc-appendix > ul { display: none; }
+    .toc-list li.toc-appendix li.toc-appendix.open > ul,
+    .toc-list li.toc-appendix li.toc-appendix:hover > ul,
+    .toc-list li.toc-appendix li.toc-appendix:focus-within > ul { display: block; }
     .toc-list > li:not(.toc-appendix) + li.toc-appendix { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule); }
     .toc-mobile { margin: 0 auto 36px; font: 13.5px/1.5 var(--sans); border-top: 1px solid var(--rule);
                   border-bottom: 1px solid var(--rule); }
@@ -3364,7 +3369,8 @@ Every run first memorizes the training set, and its test accuracy stays near 47%
             if (withKey) f.body.append(compositionKey());
             const c = el("div", { class: "chart-canvas" });
             f.body.append(c);
-            draw(c, fig, markSet(), state, Math.round(clamp((c.clientWidth || 420) * 0.7, 320, 400)));
+            /* data-height on the mount fixes the height (the homepage thumbnail) */
+            draw(c, fig, markSet(), state, +fig.mount.dataset.height || Math.round(clamp((c.clientWidth || 420) * 0.7, 320, 400)));
           }
           fig.rerender = render;
           render();

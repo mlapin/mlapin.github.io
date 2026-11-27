@@ -110,7 +110,7 @@ section { scroll-margin-top: 12px; }
 .highlights .thumb { width: 100%; height: auto; aspect-ratio: 4 / 3; }
 .thumb img.contain { object-fit: contain; background: #fff; }
 .highlights .card-title { margin-top: 6px; font-weight: 700; color: var(--link); }
-.highlights .gloss { font-size: 14px; color: var(--muted); }
+.highlights .gloss { font-size: 14px; color: var(--muted); text-wrap: pretty; }
 
 /* ---------- news ---------- */
 
